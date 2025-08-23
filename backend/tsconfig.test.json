@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["jest", "node", "supertest"],
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "rootDir": "."
+  },
+  "include": ["src/**/*", "tests/**/*", "types/**/*"]
+}

@@ -1,0 +1,31 @@
+{
+  "name": "vehicle-tracker",
+  "version": "1.0.0",
+  "description": "Vehicle Tracker Dashboard - Full-stack application for tracking vehicle status",
+  "scripts": {
+    "setup": "./scripts/setup.sh",
+    "dev": "./scripts/dev.sh",
+    "dev:docker": "./scripts/dev-docker.sh",
+    "test": "./scripts/test.sh",
+    "build": "./scripts/build.sh",
+    "start:prod": "docker-compose -f docker-compose.prod.yml up -d"
+  },
+  "keywords": [
+    "vehicle-tracker",
+    "dashboard",
+    "react",
+    "nodejs",
+    "typescript",
+    "postgresql"
+  ],
+  "author": "Vehicle Tracker Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^18.4.3",
+    "@commitlint/config-conventional": "^18.4.3",
+    "husky": "^8.0.3"
+  }
+}
