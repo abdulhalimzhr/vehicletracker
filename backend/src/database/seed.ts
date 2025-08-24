@@ -117,7 +117,6 @@ async function main() {
   console.log("Database seeded successfully!");
   console.log("Admin user:", admin.email);
   console.log("Regular user:", user.email);
-  console.log("Password for both:", "password123");
 }
 
 main()
