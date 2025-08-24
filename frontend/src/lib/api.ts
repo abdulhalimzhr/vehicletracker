@@ -1,7 +1,23 @@
 import axios from "axios";
 import { useAuthStore } from "../stores/authStore";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+// Automatically detect API URL based on environment
+const getApiUrl = () => {
+  // If VITE_API_URL is explicitly set, use it
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  
+  // In production, use the same origin as the frontend
+  if (import.meta.env.PROD) {
+    return window.location.origin;
+  }
+  
+  // In development, default to localhost:3000
+  return "http://localhost:3000";
+};
+
+const API_URL = getApiUrl();
 
 export const api = axios.create({
   baseURL: `${API_URL}/api`,

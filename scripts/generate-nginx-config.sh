@@ -6,22 +6,47 @@ DOMAIN="${1:-localhost}"
 
 echo "Generating nginx config for domain: $DOMAIN"
 
-# Check if SSL certificates exist
-if [ -f "$APP_DIR/nginx/ssl/fullchain.pem" ]; then
-    echo "SSL certificates found, generating HTTPS config"
-    CONFIG_TYPE="https"
+# Check if SSL certificates exist and are valid
+SSL_AVAILABLE=false
+if [ -f "$APP_DIR/nginx/ssl/fullchain.pem" ] && [ -f "$APP_DIR/nginx/ssl/privkey.pem" ]; then
+    if openssl x509 -in "$APP_DIR/nginx/ssl/fullchain.pem" -checkend 86400 -noout 2>/dev/null; then
+        echo "Valid SSL certificates found, generating HTTPS config"
+        SSL_AVAILABLE=true
+    else
+        echo "SSL certificates found but invalid/expired, using HTTP-only config"
+    fi
 else
-    echo "No SSL certificates, generating HTTP-only config"
-    CONFIG_TYPE="http"
+    echo "No SSL certificates found, generating HTTP-only config"
 fi
 
-# Generate appropriate config
+# Generate nginx config
 cat > "$APP_DIR/nginx/nginx.conf" << EOF
 events {
     worker_connections 1024;
 }
 
 http {
+    # Basic settings
+    sendfile on;
+    tcp_nopush on;
+    tcp_nodelay on;
+    keepalive_timeout 65;
+    types_hash_max_size 2048;
+    
+    include /etc/nginx/mime.types;
+    default_type application/octet-stream;
+    
+    # Logging
+    access_log /var/log/nginx/access.log;
+    error_log /var/log/nginx/error.log;
+    
+    # Gzip compression
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_types text/plain text/css text/xml text/javascript application/javascript application/xml+rss application/json;
+
+    # Upstream definitions
     upstream backend {
         server backend:3000 max_fails=3 fail_timeout=30s;
     }
@@ -30,21 +55,20 @@ http {
         server frontend:80 max_fails=3 fail_timeout=30s;
     }
 
-    resolver 127.0.0.11 valid=30s;
-
     # HTTP server
     server {
         listen 80;
         server_name ${DOMAIN} www.${DOMAIN} _;
         
+        # Let's Encrypt challenge
         location /.well-known/acme-challenge/ {
             root /var/www/certbot;
         }
 EOF
 
-# Add HTTPS server block if certificates exist
-if [ "$CONFIG_TYPE" = "https" ]; then
-    # Add HTTPS redirect to HTTP server
+# Add SSL redirect or direct proxy based on SSL availability
+if [ "$SSL_AVAILABLE" = true ]; then
+    # HTTPS available - redirect HTTP to HTTPS
     cat >> "$APP_DIR/nginx/nginx.conf" << EOF
         
         # Redirect HTTP to HTTPS
@@ -52,13 +76,10 @@ if [ "$CONFIG_TYPE" = "https" ]; then
             return 301 https://\$server_name\$request_uri;
         }
     }
-EOF
-    cat >> "$APP_DIR/nginx/nginx.conf" << EOF
 
     # HTTPS server
     server {
-        listen 443 ssl;
-        http2 on;
+        listen 443 ssl http2;
         server_name ${DOMAIN} www.${DOMAIN};
 
         ssl_certificate /etc/nginx/ssl/fullchain.pem;
@@ -91,7 +112,7 @@ EOF
     }
 EOF
 else
-    # No HTTPS, serve content on HTTP
+    # No HTTPS - serve directly on HTTP
     cat >> "$APP_DIR/nginx/nginx.conf" << EOF
         
         location /api/ {
@@ -117,3 +138,10 @@ fi
 echo "}" >> "$APP_DIR/nginx/nginx.conf"
 
 echo "Nginx config generated successfully"
+echo "SSL available: $SSL_AVAILABLE"
+
+# Test the generated config
+if command -v nginx >/dev/null 2>&1; then
+    echo "Testing nginx configuration..."
+    nginx -t -c "$APP_DIR/nginx/nginx.conf" || echo "Warning: nginx config test failed"
+fi
