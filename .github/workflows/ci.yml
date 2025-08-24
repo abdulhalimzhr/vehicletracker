@@ -210,11 +210,13 @@ jobs:
             JWT="${JWT_SECRET:-$(openssl rand -base64 64)}"
             JWT_R="${JWT_REFRESH_SECRET:-$(openssl rand -base64 64)}"
             DOM_VAL="${DOMAIN:-example.com}"
+            DOCKER_USERNAME="${DOCKER_USERNAME}"
             {
               echo "POSTGRES_PASSWORD=\"${PG_PASS}\""
               echo "JWT_SECRET=\"${JWT}\""
               echo "JWT_REFRESH_SECRET=\"${JWT_R}\""
               echo "DOMAIN=\"${DOM_VAL}\""
+              echo "DOCKER_USERNAME=\"${DOCKER_USERNAME}\""
             } > "$APP/.env"
 
             # shellcheck disable=SC1091
