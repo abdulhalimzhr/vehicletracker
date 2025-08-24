@@ -96,21 +96,32 @@ EOF
         add_header X-Content-Type-Options nosniff;
         add_header X-XSS-Protection "1; mode=block";
 
-        # API documentation - must come first to avoid being caught by /api/
         location = /api-docs {
-            proxy_pass http://backend/api-docs;
+            return 301 /api-docs/;
+        }
+
+        location ^~ /api-docs/ {
+            proxy_pass http://backend/api-docs/;
+            proxy_set_header Host              $host;
+            proxy_set_header X-Real-IP         $remote_addr;
+            proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        # API documentation assets
+        location ^~ /api-docs/(.*) {
+            proxy_pass http://backend/api-docs/$1;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
             proxy_set_header X-Forwarded-Proto $scheme;
         }
 
-        # API documentation assets
-        location ~ ^/api-docs/(.*) {
-            proxy_pass http://backend/api-docs/$1;
-            proxy_set_header Host $host;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        location ^~ /api/ {
+            proxy_pass http://backend;
+            proxy_set_header Host              $host;
+            proxy_set_header X-Real-IP         $remote_addr;
+            proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
             proxy_set_header X-Forwarded-Proto $scheme;
         }
 
@@ -139,19 +150,31 @@ else
         
         # API documentation - must come first to avoid being caught by /api/
         location = /api-docs {
-            proxy_pass http://backend/api-docs;
+            return 301 /api-docs/;
+        }
+
+        location ^~ /api-docs/ {
+            proxy_pass http://backend/api-docs/;
+            proxy_set_header Host              $host;
+            proxy_set_header X-Real-IP         $remote_addr;
+            proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        # API documentation assets
+        location ^~ /api-docs/(.*) {
+            proxy_pass http://backend/api-docs/$1;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
             proxy_set_header X-Forwarded-Proto $scheme;
         }
 
-        # API documentation assets
-        location ~ ^/api-docs/(.*) {
-            proxy_pass http://backend/api-docs/$1;
-            proxy_set_header Host $host;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        location ^~ /api/ {
+            proxy_pass http://backend;
+            proxy_set_header Host              $host;
+            proxy_set_header X-Real-IP         $remote_addr;
+            proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
             proxy_set_header X-Forwarded-Proto $scheme;
         }
 
