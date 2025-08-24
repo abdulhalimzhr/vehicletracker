@@ -157,7 +157,13 @@ jobs:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/master'
     steps:
-      - name: Deploy (bootstrap-on-deploy)
+      - name: Assert required secrets
+        run: |
+          test -n "${{ secrets.VPS_SSH_KEY }}" || (echo "Missing VPS_SSH_KEY"; exit 1)
+          test -n "${{ secrets.VPS_HOST }}" || (echo "Missing VPS_HOST"; exit 1)
+          test -n "${{ secrets.VPS_USERNAME }}" || (echo "Missing VPS_USERNAME"; exit 1)
+
+      - name: Deploy (bootstrap-on-deploy, safe bash -lc)
         uses: appleboy/ssh-action@v1.0.3
         env:
           DOMAIN: ${{ secrets.DOMAIN }}
@@ -171,40 +177,46 @@ jobs:
           script_stop: true
           envs: GITHUB_SHA,DOMAIN,POSTGRES_PASSWORD,JWT_SECRET,JWT_REFRESH_SECRET
           script: |
+            bash -lc '
             set -Eeuo pipefail
-            trap 'echo "❌ Error on line $LINENO"; exit 1' ERR
+            trap "echo \"❌ Error on line \$LINENO\"; exit 1" ERR
             set -x
 
             APP="/opt/vehicle-tracker"
             COMMIT="${GITHUB_SHA}"
-
-            # normalize user (avoid $USER being empty in non-interactive shells)
             ME="$(id -un)"
 
-            # show incoming envs for sanity
             echo "ENV DOMAIN=${DOMAIN:-<empty>}"
             echo "ENV POSTGRES_PASSWORD=${POSTGRES_PASSWORD:+***set***}"
             echo "ENV JWT_SECRET=${JWT_SECRET:+***set***}"
             echo "ENV JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:+***set***}"
 
             # 0) base tools
-            if ! command -v curl >/dev/null 2>&1; then
+            set +e
+            command -v curl >/dev/null 2>&1
+            CURL_EXISTS=$?
+            set -e
+            if [ $CURL_EXISTS -ne 0 ]; then
               sudo apt-get update -y
               sudo apt-get install -y curl ca-certificates gnupg
             fi
 
             # 1) Docker Engine + compose plugin (idempotent)
-            if ! command -v docker >/dev/null 2>&1; then
+            set +e
+            command -v docker >/dev/null 2>&1
+            DOCKER_EXISTS=$?
+            set -e
+            if [ $DOCKER_EXISTS -ne 0 ]; then
               echo "Installing Docker Engine..."
               sudo install -m 0755 -d /etc/apt/keyrings
               curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
               sudo chmod a+r /etc/apt/keyrings/docker.gpg
               . /etc/os-release
-              echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu ${UBUNTU_CODENAME} stable" \
-                | sudo tee /etc/apt/sources.list.d/docker.list >/dev/null
+              echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu ${UBUNTU_CODENAME} stable" | sudo tee /etc/apt/sources.list.d/docker.list >/dev/null
               sudo apt-get update -y
               sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
               sudo usermod -aG docker "$ME" || true
+              echo "Docker installation completed."
             else
               echo "Docker already installed."
             fi
@@ -226,21 +238,6 @@ jobs:
                 echo "JWT_REFRESH_SECRET=${JWT_R_VAL}"
                 echo "DOMAIN=${DOMAIN_VAL}"
               } > "$APP/.env"
-            else
-              echo ".env already exists, updating with provided secrets if available..."
-              # Update existing .env with new secrets if provided
-              if [ -n "${POSTGRES_PASSWORD:-}" ]; then
-                sed -i "s/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=${POSTGRES_PASSWORD}/" "$APP/.env"
-              fi
-              if [ -n "${JWT_SECRET:-}" ]; then
-                sed -i "s/^JWT_SECRET=.*/JWT_SECRET=${JWT_SECRET}/" "$APP/.env"
-              fi
-              if [ -n "${JWT_REFRESH_SECRET:-}" ]; then
-                sed -i "s/^JWT_REFRESH_SECRET=.*/JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}/" "$APP/.env"
-              fi
-              if [ -n "${DOMAIN:-}" ] && [ "${DOMAIN}" != "example.com" ]; then
-                sed -i "s/^DOMAIN=.*/DOMAIN=${DOMAIN}/" "$APP/.env"
-              fi
             fi
 
             set -a
@@ -255,8 +252,12 @@ jobs:
             fi
 
             if [ "$SKIP_TLS" -eq 0 ] && { [ ! -f "$APP/nginx/ssl/fullchain.pem" ] || [ ! -f "$APP/nginx/ssl/privkey.pem" ]; }; then
-              echo "Issuing Let's Encrypt cert for ${DOMAIN}..."
-              if ! command -v certbot >/dev/null 2>&1; then
+              echo "Issuing Let'\''s Encrypt cert for ${DOMAIN}..."
+              set +e
+              command -v certbot >/dev/null 2>&1
+              CERTBOT_EXISTS=$?
+              set -e
+              if [ $CERTBOT_EXISTS -ne 0 ]; then
                 sudo apt-get update -y && sudo apt-get install -y certbot
               fi
               sudo fuser -k 80/tcp || true
@@ -269,21 +270,24 @@ jobs:
               echo "TLS step skipped or already present."
             fi
 
-            # 5) Fetch compose & nginx from the same commit (public repo)
+            # 5) Fetch compose & nginx from the same commit
             echo "Fetching compose & nginx from commit ${COMMIT}..."
             curl -fsSL "https://raw.githubusercontent.com/abdulhalimzhr/vehicletracker/${COMMIT}/docker-compose.prod.yml" -o "$APP/docker-compose.prod.yml"
             curl -fsSL "https://raw.githubusercontent.com/abdulhalimzhr/vehicletracker/${COMMIT}/nginx/nginx.conf" -o "$APP/nginx/nginx.conf"
 
             # inject DOMAIN if template uses ${DOMAIN}
-            if grep -q '\${DOMAIN}' "$APP/nginx/nginx.conf"; then
+            if grep -q "\${DOMAIN}" "$APP/nginx/nginx.conf"; then
               sed -i "s|\${DOMAIN}|${DOMAIN}|g" "$APP/nginx/nginx.conf"
             fi
 
             # 6) Deploy (pull-only)
             cd "$APP"
             docker compose -f docker-compose.prod.yml pull
-            # docker compose -f docker-compose.prod.yml run --rm backend npm run prisma:migrate:deploy || true
+
+            docker compose -f docker-compose.prod.yml run --rm backend npm run prisma:migrate:deploy || true
+
             docker compose -f docker-compose.prod.yml up -d
             docker image prune -f || true
 
             echo "✅ Deploy complete → https://${DOMAIN:-example.com}"
+            '
