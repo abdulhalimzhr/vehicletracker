@@ -2,10 +2,10 @@ import { Request, Response, NextFunction } from "express";
 import { ZodError } from "zod";
 
 export const errorHandler = (
-  error: any,
+  error: unknown,
   req: Request,
   res: Response,
-  next: NextFunction,
+  _next: NextFunction,
 ): void | Response => {
   console.error("Error:", error);
 

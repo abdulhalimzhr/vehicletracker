@@ -5,7 +5,6 @@ import { vehicleApi, reportApi } from '../lib/api'
 import { downloadBlob } from '../lib/utils'
 import { Button } from '../components/ui/Button'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card'
-import { Input } from '../components/ui/Input'
 import { ChevronLeft, ChevronRight, Download, Eye } from 'lucide-react'
 
 export default function DashboardPage() {
