@@ -1,0 +1,106 @@
+#!/bin/bash
+set -e
+
+APP_DIR="/opt/vehicle-tracker"
+DOMAIN="${1:-localhost}"
+
+echo "Generating nginx config for domain: $DOMAIN"
+
+# Check if SSL certificates exist
+if [ -f "$APP_DIR/nginx/ssl/fullchain.pem" ]; then
+    echo "SSL certificates found, generating HTTPS config"
+    CONFIG_TYPE="https"
+else
+    echo "No SSL certificates, generating HTTP-only config"
+    CONFIG_TYPE="http"
+fi
+
+# Generate appropriate config
+cat > "$APP_DIR/nginx/nginx.conf" << EOF
+events {
+    worker_connections 1024;
+}
+
+http {
+    upstream backend {
+        server backend:3000 max_fails=3 fail_timeout=30s;
+    }
+
+    upstream frontend {
+        server frontend:80 max_fails=3 fail_timeout=30s;
+    }
+
+    resolver 127.0.0.11 valid=30s;
+
+    # HTTP server
+    server {
+        listen 80;
+        server_name ${DOMAIN} www.${DOMAIN} _;
+        
+        location /.well-known/acme-challenge/ {
+            root /var/www/certbot;
+        }
+        
+        location /api/ {
+            proxy_pass http://backend;
+            proxy_set_header Host \$host;
+            proxy_set_header X-Real-IP \$remote_addr;
+            proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto \$scheme;
+        }
+
+        location / {
+            proxy_pass http://frontend;
+            proxy_set_header Host \$host;
+            proxy_set_header X-Real-IP \$remote_addr;
+            proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto \$scheme;
+        }
+    }
+EOF
+
+# Add HTTPS server block if certificates exist
+if [ "$CONFIG_TYPE" = "https" ]; then
+    cat >> "$APP_DIR/nginx/nginx.conf" << EOF
+
+    # HTTPS server
+    server {
+        listen 443 ssl;
+        http2 on;
+        server_name ${DOMAIN} www.${DOMAIN};
+
+        ssl_certificate /etc/nginx/ssl/fullchain.pem;
+        ssl_certificate_key /etc/nginx/ssl/privkey.pem;
+        
+        ssl_protocols TLSv1.2 TLSv1.3;
+        ssl_ciphers ECDHE-RSA-AES256-GCM-SHA512:DHE-RSA-AES256-GCM-SHA512:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES256-GCM-SHA384;
+        ssl_prefer_server_ciphers off;
+        
+        add_header Strict-Transport-Security "max-age=63072000" always;
+        add_header X-Frame-Options DENY;
+        add_header X-Content-Type-Options nosniff;
+        add_header X-XSS-Protection "1; mode=block";
+
+        location /api/ {
+            proxy_pass http://backend;
+            proxy_set_header Host \$host;
+            proxy_set_header X-Real-IP \$remote_addr;
+            proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto \$scheme;
+        }
+
+        location / {
+            proxy_pass http://frontend;
+            proxy_set_header Host \$host;
+            proxy_set_header X-Real-IP \$remote_addr;
+            proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto \$scheme;
+        }
+    }
+EOF
+fi
+
+# Close the http block
+echo "}" >> "$APP_DIR/nginx/nginx.conf"
+
+echo "Nginx config generated successfully"
