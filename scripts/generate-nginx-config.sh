@@ -69,18 +69,20 @@ EOF
 # Add SSL redirect or direct proxy based on SSL availability
 if [ "$SSL_AVAILABLE" = true ]; then
     # HTTPS available - redirect HTTP to HTTPS
-    cat >> "$APP_DIR/nginx/nginx.conf" << EOF
+    cat >> "$APP_DIR/nginx/nginx.conf" << 'EOF'
         
         # Redirect HTTP to HTTPS
         location / {
-            return 301 https://\$server_name\$request_uri;
+            return 301 https://$server_name$request_uri;
         }
     }
 
     # HTTPS server
     server {
         listen 443 ssl http2;
-        server_name ${DOMAIN} www.${DOMAIN};
+EOF
+    echo "        server_name ${DOMAIN} www.${DOMAIN};" >> "$APP_DIR/nginx/nginx.conf"
+    cat >> "$APP_DIR/nginx/nginx.conf" << 'EOF'
 
         ssl_certificate /etc/nginx/ssl/fullchain.pem;
         ssl_certificate_key /etc/nginx/ssl/privkey.pem;
@@ -94,41 +96,81 @@ if [ "$SSL_AVAILABLE" = true ]; then
         add_header X-Content-Type-Options nosniff;
         add_header X-XSS-Protection "1; mode=block";
 
-        location /api/ {
-            proxy_pass http://backend;
-            proxy_set_header Host \$host;
-            proxy_set_header X-Real-IP \$remote_addr;
-            proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto \$scheme;
+        # API documentation - must come first to avoid being caught by /api/
+        location = /api-docs {
+            proxy_pass http://backend/api-docs;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
         }
 
+        # API documentation assets
+        location ~ ^/api-docs/(.*) {
+            proxy_pass http://backend/api-docs/$1;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        # API endpoints
+        location /api/ {
+            proxy_pass http://backend;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        # Frontend - catch all remaining requests
         location / {
             proxy_pass http://frontend;
-            proxy_set_header Host \$host;
-            proxy_set_header X-Real-IP \$remote_addr;
-            proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto \$scheme;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
         }
     }
 EOF
 else
     # No HTTPS - serve directly on HTTP
-    cat >> "$APP_DIR/nginx/nginx.conf" << EOF
+    cat >> "$APP_DIR/nginx/nginx.conf" << 'EOF'
         
-        location /api/ {
-            proxy_pass http://backend;
-            proxy_set_header Host \$host;
-            proxy_set_header X-Real-IP \$remote_addr;
-            proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto \$scheme;
+        # API documentation - must come first to avoid being caught by /api/
+        location = /api-docs {
+            proxy_pass http://backend/api-docs;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
         }
 
+        # API documentation assets
+        location ~ ^/api-docs/(.*) {
+            proxy_pass http://backend/api-docs/$1;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        # API endpoints
+        location /api/ {
+            proxy_pass http://backend;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        # Frontend - catch all remaining requests
         location / {
             proxy_pass http://frontend;
-            proxy_set_header Host \$host;
-            proxy_set_header X-Real-IP \$remote_addr;
-            proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto \$scheme;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
         }
     }
 EOF

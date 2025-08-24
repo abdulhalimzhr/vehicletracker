@@ -56,7 +56,7 @@ echo "📚 Installing backend dependencies..."
 (cd backend && npm install)
 
 echo "🗄️  Setting up database..."
-(cd backend && npm run db:generate && npm run db:migrate && npm run db:seed)
+(cd backend && npm run db:generate && npm run db:migrate && npm run db:seed:dev)
 
 echo "📚 Installing frontend dependencies..."
 (cd frontend && npm install)
