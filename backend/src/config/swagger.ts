@@ -10,7 +10,7 @@ export const swaggerOptions = {
       {
         url:
           process.env.NODE_ENV === "production"
-            ? "https://your-domain.com"
+            ? "https://vehicletracker.abdulhalimzhr.com"
             : "http://localhost:3000",
         description:
           process.env.NODE_ENV === "production" ? "Production" : "Development",
