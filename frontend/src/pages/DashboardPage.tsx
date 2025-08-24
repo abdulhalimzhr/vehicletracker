@@ -47,19 +47,20 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900">Vehicle Dashboard</h1>
+      <div className="flex sm:justify-between sm:items-center flex-col sm:flex-row flex-wrap">
+        <h1 className="text-2xl font-bold text-gray-900 my-4">Vehicle Dashboard</h1>
         <Button
           onClick={handleDownloadReport}
           disabled={isDownloading}
-          className="flex items-center space-x-2 sm:text-sm text-xs"
+          size="sm"
+          className="flex items-center space-x-2 sm:text-sm text-xs w-fit"
         >
           <Download className="h-4 w-4 me-1" />
           {isDownloading ? (
             'Downloading...'
           ) : (
             <>
-              Download<span className="hidden md:inline ms-1">Report</span>
+              Download<span className="hidden md:inline">Report</span>
             </>
           )}
         </Button>

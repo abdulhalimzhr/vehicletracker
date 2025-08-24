@@ -17,14 +17,15 @@ export default function Layout({ children }: LayoutProps) {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
               <Car className="h-8 w-8 text-blue-600" />
-              <h1 className="ml-2 text-xl font-semibold text-gray-900">
+              <h1 className="ml-2 text-xl font-semibold text-gray-900 hidden min-[400px]:block">
                 Vehicle Tracker
               </h1>
             </div>
 
             <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-700">
-                Welcome, {user?.name}
+              <span className="text-sm text-gray-700 text-xs md:text-sm">
+                <span className="hidden md:inline">Welcome, </span>
+                {user?.name}
               </span>
               <Button
                 variant="outline"
@@ -32,8 +33,8 @@ export default function Layout({ children }: LayoutProps) {
                 onClick={logout}
                 className="flex items-center space-x-2"
               >
-                <LogOut className="h-4 w-4" />
-                <span>Logout</span>
+                <LogOut className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden md:inline">Logout</span>
               </Button>
             </div>
           </div>
