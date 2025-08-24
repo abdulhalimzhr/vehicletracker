@@ -7,7 +7,7 @@ export class ReportService {
     startDate?: string,
     endDate?: string,
   ) {
-    const whereClause: Record<string, unknown> = {};
+    const whereClause: any = {};
 
     if (vehicleId) {
       whereClause.vehicleId = vehicleId;
