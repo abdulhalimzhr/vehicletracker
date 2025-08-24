@@ -1,0 +1,30 @@
+coverage:
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 1%
+        base: auto
+    patch:
+      default:
+        target: 70%
+        threshold: 5%
+        base: auto
+
+comment:
+  layout: "reach,diff,flags,tree"
+  behavior: default
+  require_changes: false
+
+ignore:
+  - "backend/tests/**/*"
+  - "frontend/tests/**/*"
+  - "backend/src/database/seed.ts"
+  - "backend/src/index.ts"
+  - "frontend/src/main.tsx"
+  - "frontend/src/App.tsx"
+  - "**/*.d.ts"
+  - "**/node_modules/**"
+  - "**/*.config.*"
+  - "**/dist/**"
+  - "**/build/**"
