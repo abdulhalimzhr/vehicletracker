@@ -226,6 +226,21 @@ jobs:
                 echo "JWT_REFRESH_SECRET=${JWT_R_VAL}"
                 echo "DOMAIN=${DOMAIN_VAL}"
               } > "$APP/.env"
+            else
+              echo ".env already exists, updating with provided secrets if available..."
+              # Update existing .env with new secrets if provided
+              if [ -n "${POSTGRES_PASSWORD:-}" ]; then
+                sed -i "s/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=${POSTGRES_PASSWORD}/" "$APP/.env"
+              fi
+              if [ -n "${JWT_SECRET:-}" ]; then
+                sed -i "s/^JWT_SECRET=.*/JWT_SECRET=${JWT_SECRET}/" "$APP/.env"
+              fi
+              if [ -n "${JWT_REFRESH_SECRET:-}" ]; then
+                sed -i "s/^JWT_REFRESH_SECRET=.*/JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}/" "$APP/.env"
+              fi
+              if [ -n "${DOMAIN:-}" ] && [ "${DOMAIN}" != "example.com" ]; then
+                sed -i "s/^DOMAIN=.*/DOMAIN=${DOMAIN}/" "$APP/.env"
+              fi
             fi
 
             set -a
@@ -272,4 +287,3 @@ jobs:
             docker image prune -f || true
 
             echo "✅ Deploy complete → https://${DOMAIN:-example.com}"
-
