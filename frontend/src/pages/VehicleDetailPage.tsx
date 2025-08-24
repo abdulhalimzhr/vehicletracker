@@ -19,13 +19,13 @@ export default function VehicleDetailPage() {
   const { data: vehicle, isLoading: vehicleLoading } = useQuery({
     queryKey: ['vehicle', id],
     queryFn: () => vehicleApi.getById(id!),
-    enabled: !!id,
+    enabled: !!id
   })
 
   const { data: statusData, isLoading: statusLoading } = useQuery({
     queryKey: ['vehicle-status', id, selectedDate],
     queryFn: () => vehicleApi.getStatus(id!, selectedDate),
-    enabled: !!id && !!selectedDate,
+    enabled: !!id && !!selectedDate
   })
 
   const handleDownloadReport = async () => {
@@ -34,7 +34,7 @@ export default function VehicleDetailPage() {
       const response = await reportApi.downloadVehicleReport({
         vehicleId: id,
         startDate: selectedDate,
-        endDate: selectedDate,
+        endDate: selectedDate
       })
       const filename = `vehicle-${vehicle?.data.plateNumber}-${selectedDate}.xlsx`
       downloadBlob(response.data, filename)
@@ -89,12 +89,20 @@ export default function VehicleDetailPage() {
           </CardHeader>
           <CardContent className="space-y-3">
             <div>
-              <span className="text-sm font-medium text-gray-500">Plate Number</span>
-              <p className="text-lg font-semibold">{vehicleData?.plateNumber}</p>
+              <span className="text-sm font-medium text-gray-500">
+                Plate Number
+              </span>
+              <p className="text-lg font-semibold">
+                {vehicleData?.plateNumber}
+              </p>
             </div>
             <div>
-              <span className="text-sm font-medium text-gray-500">Brand & Model</span>
-              <p>{vehicleData?.brand} {vehicleData?.model}</p>
+              <span className="text-sm font-medium text-gray-500">
+                Brand & Model
+              </span>
+              <p>
+                {vehicleData?.brand} {vehicleData?.model}
+              </p>
             </div>
             <div>
               <span className="text-sm font-medium text-gray-500">Year</span>
@@ -118,7 +126,7 @@ export default function VehicleDetailPage() {
             <Input
               type="date"
               value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
+              onChange={e => setSelectedDate(e.target.value)}
               max={new Date().toISOString().split('T')[0]}
             />
           </CardContent>
@@ -163,7 +171,9 @@ export default function VehicleDetailPage() {
         </CardHeader>
         <CardContent>
           {statusLoading ? (
-            <div className="text-center py-8 text-gray-500">Loading trips...</div>
+            <div className="text-center py-8 text-gray-500">
+              Loading trips...
+            </div>
           ) : status?.trips.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               No trips found for this date
@@ -193,7 +203,12 @@ export default function VehicleDetailPage() {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {status?.trips.map((trip: any) => {
                     const duration = trip.endTime
-                      ? Math.round((new Date(trip.endTime).getTime() - new Date(trip.startTime).getTime()) / 1000 / 60)
+                      ? Math.round(
+                          (new Date(trip.endTime).getTime() -
+                            new Date(trip.startTime).getTime()) /
+                            1000 /
+                            60
+                        )
                       : 0
 
                     return (
@@ -215,7 +230,9 @@ export default function VehicleDetailPage() {
                           {formatDateTime(trip.startTime)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {trip.endTime ? formatDateTime(trip.endTime) : 'Ongoing'}
+                          {trip.endTime
+                            ? formatDateTime(trip.endTime)
+                            : 'Ongoing'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {duration > 0 ? formatDuration(duration) : '-'}

@@ -14,14 +14,16 @@ export default function DashboardPage() {
 
   const { data: vehiclesData, isLoading } = useQuery({
     queryKey: ['vehicles', page],
-    queryFn: () => vehicleApi.getAll(page, 10),
+    queryFn: () => vehicleApi.getAll(page, 10)
   })
 
   const handleDownloadReport = async () => {
     try {
       setIsDownloading(true)
       const response = await reportApi.downloadVehicleReport()
-      const filename = `vehicle-report-${new Date().toISOString().split('T')[0]}.xlsx`
+      const filename = `vehicle-report-${
+        new Date().toISOString().split('T')[0]
+      }.xlsx`
       downloadBlob(response.data, filename)
     } catch (error) {
       console.error('Failed to download report:', error)
@@ -38,7 +40,10 @@ export default function DashboardPage() {
     )
   }
 
-  const { vehicles, pagination } = vehiclesData?.data || { vehicles: [], pagination: {} }
+  const { vehicles, pagination } = vehiclesData?.data || {
+    vehicles: [],
+    pagination: {}
+  }
 
   return (
     <div className="space-y-6">

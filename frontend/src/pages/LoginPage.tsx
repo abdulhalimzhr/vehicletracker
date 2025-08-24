@@ -4,7 +4,13 @@ import { useAuthStore } from '../stores/authStore'
 import { authApi } from '../lib/api'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
+} from '../components/ui/Card'
 import { Car, AlertCircle } from 'lucide-react'
 
 export default function LoginPage() {
@@ -15,10 +21,10 @@ export default function LoginPage() {
   const loginMutation = useMutation({
     mutationFn: ({ email, password }: { email: string; password: string }) =>
       authApi.login(email, password),
-    onSuccess: (response) => {
+    onSuccess: response => {
       const { user, accessToken, refreshToken } = response.data
       login(user, accessToken, refreshToken)
-    },
+    }
   })
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -34,9 +40,7 @@ export default function LoginPage() {
           <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
             Vehicle Tracker
           </h2>
-          <p className="mt-2 text-sm text-gray-600">
-            Sign in to your account
-          </p>
+          <p className="mt-2 text-sm text-gray-600">Sign in to your account</p>
         </div>
 
         <Card>
@@ -49,28 +53,34 @@ export default function LoginPage() {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                <label
+                  htmlFor="email"
+                  className="block text-sm font-medium text-gray-700"
+                >
                   Email
                 </label>
                 <Input
                   id="email"
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={e => setEmail(e.target.value)}
                   required
                   className="mt-1"
                 />
               </div>
 
               <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                <label
+                  htmlFor="password"
+                  className="block text-sm font-medium text-gray-700"
+                >
                   Password
                 </label>
                 <Input
                   id="password"
                   type="password"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={e => setPassword(e.target.value)}
                   required
                   className="mt-1"
                 />
@@ -93,9 +103,12 @@ export default function LoginPage() {
             </form>
 
             <div className="mt-6 p-4 bg-gray-50 rounded-md">
-              <p className="text-sm text-gray-600 font-medium">Demo Credentials:</p>
+              <p className="text-sm text-gray-600 font-medium">
+                Demo Credentials:
+              </p>
               <p className="text-xs text-gray-500 mt-1">
-                Email: admin@example.com<br />
+                Email: admin@example.com
+                <br />
                 Password: password123
               </p>
             </div>
