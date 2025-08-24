@@ -1,35 +1,40 @@
 export const swaggerOptions = {
   definition: {
-    openapi: "3.0.0",
+    openapi: '3.0.0',
     info: {
-      title: "Vehicle Tracker API",
-      version: "1.0.0",
-      description: "API for Vehicle Tracker Dashboard",
+      title: 'Vehicle Tracker API',
+      version: '1.0.0',
+      description: 'API for Vehicle Tracker Dashboard'
     },
     servers: [
       {
         url:
-          process.env.NODE_ENV === "production"
-            ? "https://vehicletracker.abdulhalimzhr.com"
-            : "http://localhost:3000",
+          process.env.NODE_ENV === 'production'
+            ? 'https://vehicletracker.abdulhalimzhr.com'
+            : 'http://localhost:3000',
         description:
-          process.env.NODE_ENV === "production" ? "Production" : "Development",
-      },
+          process.env.NODE_ENV === 'production'
+            ? 'Production'
+            : 'Development'
+      }
     ],
     components: {
       securitySchemes: {
         bearerAuth: {
-          type: "http",
-          scheme: "bearer",
-          bearerFormat: "JWT",
-        },
-      },
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT'
+        }
+      }
     },
     security: [
       {
-        bearerAuth: [],
-      },
-    ],
+        bearerAuth: []
+      }
+    ]
   },
-  apis: ["./src/routes/*.ts"],
+  apis:
+    process.env.NODE_ENV === 'production'
+      ? ['./dist/routes/*.js']
+      : ['./src/routes/*.ts']
 };
