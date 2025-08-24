@@ -23,6 +23,9 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
       NODE_ENV: production
+      PORT: 3000
+    env_file:
+      - .env
     depends_on:
       postgres:
         condition: service_healthy

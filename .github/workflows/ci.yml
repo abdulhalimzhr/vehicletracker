@@ -212,12 +212,16 @@ jobs:
             DOM_VAL="${DOMAIN:-example.com}"
             DOCKER_USERNAME="${DOCKER_USERNAME}"
             {
-              echo "POSTGRES_PASSWORD=\"${PG_PASS}\""
-              echo "JWT_SECRET=\"${JWT}\""
-              echo "JWT_REFRESH_SECRET=\"${JWT_R}\""
-              echo "DOMAIN=\"${DOM_VAL}\""
-              echo "DOCKER_USERNAME=\"${DOCKER_USERNAME}\""
+              echo "POSTGRES_PASSWORD=${PG_PASS}"
+              echo "JWT_SECRET=${JWT}"
+              echo "JWT_REFRESH_SECRET=${JWT_R}"
+              echo "DOMAIN=${DOM_VAL}"
+              echo "DOCKER_USERNAME=${DOCKER_USERNAME}"
             } > "$APP/.env"
+            
+            # Debug: show .env file contents (without sensitive values)
+            echo "[env] .env file created with $(wc -l < "$APP/.env") lines"
+            echo "[env] POSTGRES_PASSWORD length: ${#PG_PASS}"
 
             # shellcheck disable=SC1091
             set -a; . "$APP/.env"; set +a
@@ -228,7 +232,8 @@ jobs:
             curl -fsSL "https://raw.githubusercontent.com/abdulhalimzhr/vehicletracker/${COMMIT}/docker-compose.prod.yml" -o "$APP/docker-compose.prod.yml"
             curl -fsSL "https://raw.githubusercontent.com/abdulhalimzhr/vehicletracker/${COMMIT}/scripts/setup-ssl.sh" -o "$APP/setup-ssl.sh"
             curl -fsSL "https://raw.githubusercontent.com/abdulhalimzhr/vehicletracker/${COMMIT}/scripts/generate-nginx-config.sh" -o "$APP/generate-nginx-config.sh"
-            chmod +x "$APP/setup-ssl.sh" "$APP/generate-nginx-config.sh"
+            curl -fsSL "https://raw.githubusercontent.com/abdulhalimzhr/vehicletracker/${COMMIT}/scripts/run-migration.sh" -o "$APP/run-migration.sh"
+            chmod +x "$APP/setup-ssl.sh" "$APP/generate-nginx-config.sh" "$APP/run-migration.sh"
 
             # 5) Setup SSL and generate nginx config
             echo "[ssl] setting up SSL certificates"
@@ -239,15 +244,54 @@ jobs:
 
             # 6) Deploy (always use sudo docker until next login)
             cd "$APP"
+            
+            # Debug: show environment variables
+            echo "[debug] checking environment variables"
+            echo "POSTGRES_PASSWORD is set: $([ -n "${POSTGRES_PASSWORD:-}" ] && echo "yes" || echo "no")"
+            echo "DATABASE_URL would be: postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/vehicle_tracker"
+            
             echo "[compose] pulling images…"
-            sudo docker compose -f docker-compose.prod.yml pull || true
+            sudo docker compose -f docker-compose.prod.yml --env-file .env pull || true
 
             # (Optional) prisma migrate — run one-off container; safe-fail
             echo "[migrate] running prisma migrate (non-fatal on fail)"
-            sudo docker compose -f docker-compose.prod.yml run --rm backend npx prisma migrate deploy || true
+            sudo "$APP/run-migration.sh" || echo "[migrate] migration failed, will retry after containers are up"
 
             echo "[compose] up -d…"
-            sudo docker compose -f docker-compose.prod.yml up -d || true
+            sudo docker compose -f docker-compose.prod.yml --env-file .env up -d || true
+
+            # Wait for services to be healthy
+            echo "[health] waiting for services to be healthy..."
+            sleep 15
+            
+            # Check container status
+            echo "[debug] container status:"
+            sudo docker compose -f docker-compose.prod.yml --env-file .env ps
+            
+            # Check nginx logs
+            echo "[debug] nginx logs (last 10 lines):"
+            sudo docker compose -f docker-compose.prod.yml --env-file .env logs --tail=10 nginx || true
+            
+            # Check if ports are listening
+            echo "[debug] checking if ports are listening:"
+            sudo netstat -tlnp | grep -E ":80|:443" || echo "No HTTP/HTTPS ports found"
+            
+            # Test local connectivity
+            echo "[debug] testing local connectivity:"
+            curl -I http://localhost/ || echo "HTTP connection failed"
+            curl -I -k https://localhost/ || echo "HTTPS connection failed"
+
+            # Wait for backend to be healthy, then try migration again if it failed
+            echo "[migrate] waiting for backend to be healthy..."
+            for i in {1..30}; do
+              if sudo docker compose -f docker-compose.prod.yml --env-file .env ps backend | grep -q "healthy"; then
+                echo "[migrate] backend is healthy, trying migration again"
+                sudo docker compose -f docker-compose.prod.yml --env-file .env exec backend npx prisma migrate deploy || echo "[migrate] migration failed again, continuing..."
+                break
+              fi
+              echo "[migrate] waiting... ($i/30)"
+              sleep 10
+            done
 
             echo "[docker] prune old images"
             sudo docker image prune -f || true
