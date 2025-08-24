@@ -1,26 +1,26 @@
-import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 
 interface User {
-  id: string;
-  email: string;
-  name: string;
-  role: string;
+  id: string
+  email: string
+  name: string
+  role: string
 }
 
 interface AuthState {
-  user: User | null;
-  accessToken: string | null;
-  refreshToken: string | null;
-  isAuthenticated: boolean;
-  login: (user: User, accessToken: string, refreshToken: string) => void;
-  logout: () => void;
-  updateToken: (accessToken: string) => void;
+  user: User | null
+  accessToken: string | null
+  refreshToken: string | null
+  isAuthenticated: boolean
+  login: (user: User, accessToken: string, refreshToken: string) => void
+  logout: () => void
+  updateToken: (accessToken: string) => void
 }
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set) => ({
+    set => ({
       user: null,
       accessToken: null,
       refreshToken: null,
@@ -30,23 +30,23 @@ export const useAuthStore = create<AuthState>()(
           user,
           accessToken,
           refreshToken,
-          isAuthenticated: true,
+          isAuthenticated: true
         }),
       logout: () =>
         set({
           user: null,
           accessToken: null,
           refreshToken: null,
-          isAuthenticated: false,
+          isAuthenticated: false
         }),
-      updateToken: (accessToken) =>
-        set((state) => ({
+      updateToken: accessToken =>
+        set(state => ({
           ...state,
-          accessToken,
-        })),
+          accessToken
+        }))
     }),
     {
-      name: "auth-storage",
-    },
-  ),
-);
+      name: 'auth-storage'
+    }
+  )
+)

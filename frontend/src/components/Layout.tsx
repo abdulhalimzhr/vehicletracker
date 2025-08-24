@@ -21,7 +21,7 @@ export default function Layout({ children }: LayoutProps) {
                 Vehicle Tracker
               </h1>
             </div>
-            
+
             <div className="flex items-center space-x-4">
               <span className="text-sm text-gray-700">
                 Welcome, {user?.name}

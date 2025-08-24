@@ -14,14 +14,16 @@ export default function DashboardPage() {
 
   const { data: vehiclesData, isLoading } = useQuery({
     queryKey: ['vehicles', page],
-    queryFn: () => vehicleApi.getAll(page, 10),
+    queryFn: () => vehicleApi.getAll(page, 10)
   })
 
   const handleDownloadReport = async () => {
     try {
       setIsDownloading(true)
       const response = await reportApi.downloadVehicleReport()
-      const filename = `vehicle-report-${new Date().toISOString().split('T')[0]}.xlsx`
+      const filename = `vehicle-report-${
+        new Date().toISOString().split('T')[0]
+      }.xlsx`
       downloadBlob(response.data, filename)
     } catch (error) {
       console.error('Failed to download report:', error)
@@ -38,7 +40,10 @@ export default function DashboardPage() {
     )
   }
 
-  const { vehicles, pagination } = vehiclesData?.data || { vehicles: [], pagination: {} }
+  const { vehicles, pagination } = vehiclesData?.data || {
+    vehicles: [],
+    pagination: {}
+  }
 
   return (
     <div className="space-y-6">
@@ -47,10 +52,16 @@ export default function DashboardPage() {
         <Button
           onClick={handleDownloadReport}
           disabled={isDownloading}
-          className="flex items-center space-x-2"
+          className="flex items-center space-x-2 sm:text-sm text-xs"
         >
-          <Download className="h-4 w-4" />
-          <span>{isDownloading ? 'Downloading...' : 'Download Report'}</span>
+          <Download className="h-4 w-4 me-1" />
+          {isDownloading ? (
+            'Downloading...'
+          ) : (
+            <>
+              Download<span className="hidden md:inline ms-1">Report</span>
+            </>
+          )}
         </Button>
       </div>
 
@@ -84,42 +95,51 @@ export default function DashboardPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {vehicles.map((vehicle: any) => (
-                  <tr key={vehicle.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
-                          <span className="text-blue-600 font-medium text-sm">
-                            {vehicle.brand.charAt(0)}
-                          </span>
+                {vehicles.map(
+                  (vehicle: {
+                    id: string
+                    plateNumber: string
+                    brand: string
+                    model: string
+                    year: number
+                    color: string
+                  }) => (
+                    <tr key={vehicle.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
+                            <span className="text-blue-600 font-medium text-sm">
+                              {vehicle.brand.charAt(0)}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {vehicle.plateNumber}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {vehicle.brand} {vehicle.model}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {vehicle.year}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {vehicle.color}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => navigate(`/vehicles/${vehicle.id}`)}
-                        className="flex items-center space-x-1"
-                      >
-                        <Eye className="h-4 w-4" />
-                        <span>View</span>
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {vehicle.plateNumber}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {vehicle.brand} {vehicle.model}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {vehicle.year}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {vehicle.color}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => navigate(`/vehicles/${vehicle.id}`)}
+                          className="flex items-center space-x-1"
+                        >
+                          <Eye className="h-4 w-4" />
+                          <span>View</span>
+                        </Button>
+                      </td>
+                    </tr>
+                  )
+                )}
               </tbody>
             </table>
           </div>

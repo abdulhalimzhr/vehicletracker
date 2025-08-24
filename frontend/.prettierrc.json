@@ -1,0 +1,27 @@
+{
+  "trailingComma": "none",
+  "tabWidth": 2,
+  "semi": false,
+  "singleQuote": true,
+  "endOfLine": "auto",
+  "quoteProps": "preserve",
+  "arrowParens": "avoid",
+  "bracketSpacing": true,
+  "printWidth": 80,
+  "proseWrap": "preserve",
+  "overrides": [
+    {
+      "files": "*.vue",
+      "options": {
+        "jsxSingleQuote": true,
+        "parser": "vue"
+      }
+    },
+    {
+      "files": ["*.ts", "*.vue"],
+      "options": {
+        "proseWrap": "always"
+      }
+    }
+  ]
+}
