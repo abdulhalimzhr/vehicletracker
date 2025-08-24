@@ -4,6 +4,11 @@ Full-stack application for tracking vehicle status with real-time monitoring and
 
 > Track vehicles, generate reports, and monitor fleet status in real-time!
 
+## Preview
+<img width="1906" height="969" alt="image" src="https://github.com/user-attachments/assets/e1d319cb-fdba-4edd-9e93-3f69d189efa9" />
+<img width="1914" height="970" alt="image" src="https://github.com/user-attachments/assets/d0f3d8f7-77ec-438f-8e3d-e0ee77cc6f2f" />
+
+
 ## Tech Stack
 
 **Backend:**
