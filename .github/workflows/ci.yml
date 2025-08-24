@@ -167,12 +167,13 @@ jobs:
         env:
           DOMAIN: ${{ secrets.DOMAIN }}
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script_stop: false
-          envs: GITHUB_SHA,DOMAIN,POSTGRES_PASSWORD
+          envs: GITHUB_SHA,DOMAIN,POSTGRES_PASSWORD,DOCKER_USERNAME
           script: |
             #!/usr/bin/env bash
             set -u
