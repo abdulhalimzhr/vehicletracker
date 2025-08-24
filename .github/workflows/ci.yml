@@ -203,22 +203,18 @@ jobs:
             sudo mkdir -p "$APP/nginx/ssl"
             sudo chown -R "$ME":"$(id -gn "$ME")" "$APP"
 
-            # 3) .env (generate once; reuse later)
-            if [ ! -f "$APP/.env" ]; then
-              echo "[env] creating $APP/.env"
-              PG_PASS="${POSTGRES_PASSWORD:-$(openssl rand -base64 32)}"
-              JWT="${JWT_SECRET:-$(openssl rand -base64 64)}"
-              JWT_R="${JWT_REFRESH_SECRET:-$(openssl rand -base64 64)}"
-              DOM_VAL="${DOMAIN:-example.com}"
-              {
-                echo "POSTGRES_PASSWORD=${PG_PASS}"
-                echo "JWT_SECRET=${JWT}"
-                echo "JWT_REFRESH_SECRET=${JWT_R}"
-                echo "DOMAIN=${DOM_VAL}"
-              } > "$APP/.env"
-            else
-              echo "[env] $APP/.env exists — reusing"
-            fi
+            # 3) .env (always recreate to fix malformed files)
+            echo "[env] recreating $APP/.env with proper quoting"
+            PG_PASS="${POSTGRES_PASSWORD:-$(openssl rand -base64 32)}"
+            JWT="${JWT_SECRET:-$(openssl rand -base64 64)}"
+            JWT_R="${JWT_REFRESH_SECRET:-$(openssl rand -base64 64)}"
+            DOM_VAL="${DOMAIN:-example.com}"
+            {
+              echo "POSTGRES_PASSWORD=\"${PG_PASS}\""
+              echo "JWT_SECRET=\"${JWT}\""
+              echo "JWT_REFRESH_SECRET=\"${JWT_R}\""
+              echo "DOMAIN=\"${DOM_VAL}\""
+            } > "$APP/.env"
 
             # shellcheck disable=SC1091
             set -a; . "$APP/.env"; set +a
