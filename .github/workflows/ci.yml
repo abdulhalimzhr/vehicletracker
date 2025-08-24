@@ -207,7 +207,7 @@ jobs:
             if [ ! -f "$APP/.env" ]; then
               echo "[env] creating $APP/.env"
               PG_PASS="${POSTGRES_PASSWORD:-$(openssl rand -base64 32)}"
-              JWT="${JWT_SECRET:-$(openssl rand -base64 64)}"                  # env likely unset -> generate
+              JWT="${JWT_SECRET:-$(openssl rand -base64 64)}"
               JWT_R="${JWT_REFRESH_SECRET:-$(openssl rand -base64 64)}"
               DOM_VAL="${DOMAIN:-example.com}"
               {
