@@ -206,19 +206,19 @@ jobs:
 
             # 3) .env (always recreate to fix malformed files)
             echo "[env] recreating $APP/.env with proper quoting"
-            PG_PASS="${POSTGRES_PASSWORD:-$(openssl rand -base64 32)}"
-            JWT="${JWT_SECRET:-$(openssl rand -base64 64)}"
-            JWT_R="${JWT_REFRESH_SECRET:-$(openssl rand -base64 64)}"
+            PG_PASS="${POSTGRES_PASSWORD:-$(openssl rand -base64 32 | tr -d '\n')}"
+            JWT="${JWT_SECRET:-$(openssl rand -hex 32)}"
+            JWT_R="${JWT_REFRESH_SECRET:-$(openssl rand -hex 32)}"
             DOM_VAL="${DOMAIN:-example.com}"
             DOCKER_USERNAME="${DOCKER_USERNAME}"
             {
-              echo "POSTGRES_PASSWORD="${PG_PASS}"
+              echo "POSTGRES_PASSWORD=\"${PG_PASS}\""
               echo "JWT_SECRET=\"${JWT}\""
               echo "JWT_REFRESH_SECRET=\"${JWT_R}\""
-              echo "DOMAIN=${DOM_VAL}"
-              echo "DOCKER_USERNAME=${DOCKER_USERNAME}"
+              echo "DOMAIN=\"${DOM_VAL}\""
+              echo "DOCKER_USERNAME=\"${DOCKER_USERNAME}\""
             } > "$APP/.env"
-            
+
             # Debug: show .env file contents (without sensitive values)
             echo "[env] .env file created with $(wc -l < "$APP/.env") lines"
             echo "[env] POSTGRES_PASSWORD length: ${#PG_PASS}"
@@ -238,18 +238,18 @@ jobs:
             # 5) Setup SSL and generate nginx config
             echo "[ssl] setting up SSL certificates"
             sudo "$APP/setup-ssl.sh" "${DOMAIN}"
-            
+
             echo "[nginx] generating nginx configuration"
             sudo "$APP/generate-nginx-config.sh" "${DOMAIN}"
 
             # 6) Deploy (always use sudo docker until next login)
             cd "$APP"
-            
+
             # Debug: show environment variables
             echo "[debug] checking environment variables"
             echo "POSTGRES_PASSWORD is set: $([ -n "${POSTGRES_PASSWORD:-}" ] && echo "yes" || echo "no")"
             echo "DATABASE_URL would be: postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/vehicle_tracker"
-            
+
             echo "[compose] pulling images…"
             sudo docker compose -f docker-compose.prod.yml --env-file .env pull || true
 
@@ -263,19 +263,19 @@ jobs:
             # Wait for services to be healthy
             echo "[health] waiting for services to be healthy..."
             sleep 15
-            
+
             # Check container status
             echo "[debug] container status:"
             sudo docker compose -f docker-compose.prod.yml --env-file .env ps
-            
+
             # Check nginx logs
             echo "[debug] nginx logs (last 10 lines):"
             sudo docker compose -f docker-compose.prod.yml --env-file .env logs --tail=10 nginx || true
-            
+
             # Check if ports are listening
             echo "[debug] checking if ports are listening:"
             sudo netstat -tlnp | grep -E ":80|:443" || echo "No HTTP/HTTPS ports found"
-            
+
             # Test local connectivity
             echo "[debug] testing local connectivity:"
             curl -I http://localhost/ || echo "HTTP connection failed"
