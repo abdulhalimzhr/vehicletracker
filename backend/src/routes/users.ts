@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { authenticateToken, requireAdmin } from "../middleware/auth";
+import { authenticateToken, requireAdmin, AuthRequest } from "../middleware/auth";
 import prisma from "../config/database";
 
 const router = Router();
@@ -24,7 +24,7 @@ router.get("/", authenticateToken, requireAdmin, async (req, res, next) => {
 router.get("/me", authenticateToken, async (req, res, next) => {
   try {
     const user = await prisma.user.findUnique({
-      where: { id: (req as any).user.id },
+      where: { id: (req as AuthRequest).user!.id },
       select: {
         id: true,
         email: true,
