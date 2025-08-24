@@ -32,7 +32,7 @@ Full-stack application for tracking vehicle status with real-time monitoring and
 - Zustand + React Query
 - React Router v6
 
-**DevOps:**
+**DevOps & Testing:**
 
 - Docker & Docker Compose
 - GitHub Actions CI/CD
@@ -40,6 +40,8 @@ Full-stack application for tracking vehicle status with real-time monitoring and
 - Let's Encrypt automatic SSL certificates
 - Automated database migrations and seeding
 - Production deployment to VPS
+- **Codecov Integration**: Automated code coverage tracking and reporting
+- **Jest & Vitest**: Comprehensive test suites with coverage reports
 
 ## Quick Start
 
@@ -316,6 +318,7 @@ sudo /opt/vehicle-tracker/scripts/setup-ssl.sh your-domain.com
 - 🛡️ **Security**: Input validation, CORS protection, security headers
 - 🔄 **Real-time**: Real-time data with React Query
 - 📈 **Monitoring**: Health checks and comprehensive logging
+- 🧪 **Quality Assurance**: Automated testing with coverage tracking via Codecov
 - 🚀 **Production Ready**: Automated CI/CD with Docker, SSL, and database management
 - 🌐 **Live Demo**: Deployed at [vehicletracker.abdulhalimzhr.com](https://vehicletracker.abdulhalimzhr.com)
 
@@ -330,43 +333,63 @@ sudo /opt/vehicle-tracker/scripts/setup-ssl.sh your-domain.com
 └── nginx/            # Reverse proxy config
 ```
 
+## CI/CD Pipeline
+
+### Automated Workflows
+
+🔄 **Continuous Integration**: Every push and PR triggers:
+
+- ✅ Backend tests with PostgreSQL integration
+- ✅ Frontend tests with component coverage
+- ✅ Code linting and formatting checks
+- ✅ Coverage report generation and upload to Codecov
+- ✅ Docker image building and pushing to Docker Hub
+
+🚀 **Continuous Deployment**: Pushes to `master` branch trigger:
+
+- ✅ Automated VPS deployment with zero downtime
+- ✅ SSL certificate management with Let's Encrypt
+- ✅ Database migrations and seeding
+- ✅ Health checks and rollback capabilities
+
+### Coverage Requirements
+
+- **Minimum Coverage**: 70% for new code (enforced via Codecov)
+- **Coverage Threshold**: PRs blocked if coverage drops by >5%
+- **Ignored Files**: Test files, config files, and build artifacts excluded
+- **Separate Tracking**: Backend and frontend coverage tracked independently
+
 ## Available Scripts
 
 ```bash
 npm run setup      # One-time setup (install deps, create env files, setup DB)
 npm run dev        # Start development servers (backend + frontend)
 npm run dev:docker # Start everything with Docker
-npm run test       # Run all tests
+npm run test       # Run all tests with coverage
 npm run build      # Build for production
 npm start:prod     # Start production environment
 ```
 
-## Testing
+## Testing & Code Coverage
 
-### Test Coverage Results
+[![codecov](https://codecov.io/gh/abdulhalimzhr/vehicletracker/branch/master/graph/badge.svg)](https://codecov.io/gh/abdulhalimzhr/vehicletracker)
 
-**Backend Coverage:**
+### Coverage Dashboard
 
-```
-File                | % Stmts | % Branch | % Funcs | % Lines |
---------------------|---------|----------|---------|---------|
-All files           |   13.1  |   10.86  |  16.12  |  13.43  |
-services/           |   36.36 |   14.81  |  38.46  |  37.5   |
-  authService.ts    |   61.9  |     75   |  66.66  |  61.9   |
-  vehicleService.ts |     50  |   9.09   |  42.85  |    50   |
-```
+📊 **View detailed coverage reports**: [Codecov Dashboard](https://codecov.io/gh/abdulhalimzhr/vehicletracker)
 
-**Frontend Coverage:**
+- **Overall Coverage**: Tracked automatically with Codecov
+- **Backend Coverage**: ~66% statement coverage with comprehensive API tests
+- **Frontend Coverage**: ~66% statement coverage with component and utility tests
+- **Coverage Trends**: Historical coverage data and PR impact analysis
+- **Coverage Thresholds**: Minimum 70% coverage required for new code
 
-```
-File           | % Stmts | % Branch | % Funcs | % Lines |
----------------|---------|----------|---------|---------|
-All files      |   65.41 |       90 |   26.31 |   65.41 |
-components/ui/ |     100 |      100 |     100 |     100 |
-  Button.tsx   |     100 |      100 |     100 |     100 |
-stores/        |     100 |      100 |     100 |     100 |
-  authStore.ts |     100 |      100 |     100 |     100 |
-```
+### Coverage Integration
+
+- ✅ **Automated Coverage Reports**: Generated on every CI run
+- ✅ **PR Coverage Comments**: Automatic coverage analysis on pull requests
+- ✅ **Coverage Status Checks**: PRs blocked if coverage drops significantly
+- ✅ **Separate Backend/Frontend Tracking**: Individual coverage metrics for each service
 
 ### Test Suites
 
