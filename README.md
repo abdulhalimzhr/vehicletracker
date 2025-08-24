@@ -71,20 +71,92 @@ npm run dev
 
 ### Production Deployment
 
-#### Local Deployment
+#### Docker Images
+
+**Build & Push to Docker Hub:**
+
 ```bash
-# Build and deploy
+# Login to Docker Hub
+docker login
+
+# Build and tag images
+docker build -t your-username/vehicle-tracker-backend:latest ./backend
+docker build -t your-username/vehicle-tracker-frontend:latest ./frontend
+
+# Push to Docker Hub
+docker push your-username/vehicle-tracker-backend:latest
+docker push your-username/vehicle-tracker-frontend:latest
+
+# Or use the automated script
+npm run docker:build
+npm run docker:push
+```
+
+**Pull & Run from Docker Hub:**
+
+```bash
+# Pull images
+docker pull your-username/vehicle-tracker-backend:latest
+docker pull your-username/vehicle-tracker-frontend:latest
+
+# Update docker-compose.prod.yml with your image names
+# Then deploy
+docker-compose -f docker-compose.prod.yml up -d
+```
+
+#### Local Deployment
+
+```bash
+# Build and deploy locally
 docker-compose -f docker-compose.prod.yml up -d
 ```
 
 #### VPS Deployment
 
 **Prerequisites:**
+
 - Ubuntu 20.04+ VPS with root access
 - Domain pointed to VPS IP
 - Docker Hub account (optional)
 
+**GitHub Secrets Configuration (for CI/CD):**
+
+Before the automated deployment works, you need to configure GitHub repository secrets:
+
+1. Go to your GitHub repository
+2. Click **Settings** → **Secrets and variables** → **Actions**
+3. Click **New repository secret** and add these secrets:
+
+| Secret Name       | Description                            | Example Value                            |
+| ----------------- | -------------------------------------- | ---------------------------------------- |
+| `DOCKER_USERNAME` | Your Docker Hub username               | `your-dockerhub-username`                |
+| `DOCKER_PASSWORD` | Docker Hub access token (not password) | `dckr_pat_abc123...`                     |
+| `VPS_HOST`        | Your VPS IP address or domain          | `192.168.1.100` or `your-domain.com`     |
+| `VPS_USERNAME`    | VPS username                           | `root` or `ubuntu`                       |
+| `VPS_SSH_KEY`     | Private SSH key content                | `-----BEGIN OPENSSH PRIVATE KEY-----...` |
+
+**To create Docker Hub access token:**
+
+1. Go to [Docker Hub](https://hub.docker.com/) → Account Settings → Security
+2. Click "New Access Token"
+3. Name it "GitHub Actions" and select Read/Write/Delete permissions
+4. Copy the generated token (use this as `DOCKER_PASSWORD`)
+
+**To get SSH private key:**
+
+```bash
+# Generate SSH key pair (if you don't have one)
+ssh-keygen -t rsa -b 4096 -C "your-email@example.com"
+
+# Copy private key content (use this as VPS_SSH_KEY secret)
+cat ~/.ssh/id_rsa
+
+# Copy public key to VPS
+ssh-copy-id user@your-vps-ip
+```
+
 **Step 1: Automated VPS Setup**
+
 ```bash
 # On Ubuntu VPS, run automated setup script
 curl -o setup-vps.sh https://raw.githubusercontent.com/your-repo/vehicle-tracker/main/deploy/setup-vps.sh
@@ -94,17 +166,20 @@ sudo ./setup-vps.sh your-domain.com your-docker-username
 
 **Step 2: DNS Configuration**
 Point domain to VPS IP:
+
 ```
 A     your-domain.com      → YOUR_VPS_IP
 A     www.your-domain.com  → YOUR_VPS_IP
 ```
 
 **Step 3: Verify Deployment**
+
 - Application: `https://your-domain.com`
 - API Health: `https://your-domain.com/api/health`
 - API Docs: `https://your-domain.com/api-docs`
 
 **Step 4: Service Management**
+
 ```bash
 # Check status
 sudo systemctl status vehicle-tracker
@@ -117,6 +192,7 @@ sudo systemctl restart vehicle-tracker
 ```
 
 **Manual VPS Setup (Alternative):**
+
 ```bash
 # 1. Install Docker & Docker Compose
 curl -fsSL https://get.docker.com -o get-docker.sh
@@ -147,11 +223,13 @@ Visit `http://localhost:3000/api-docs` for Swagger documentation.
 ## Demo Credentials
 
 **Admin User:**
+
 - Email: `admin@example.com`
 - Password: `password123`
 - Role: ADMIN (full access - can CRUD vehicles)
 
 **Regular User:**
+
 - Email: `user@example.com`
 - Password: `password123`
 - Role: USER (read-only access)
@@ -193,6 +271,7 @@ npm start:prod     # Start production environment
 ### Test Coverage Results
 
 **Backend Coverage:**
+
 ```
 File                | % Stmts | % Branch | % Funcs | % Lines |
 --------------------|---------|----------|---------|---------|
@@ -203,6 +282,7 @@ services/           |   36.36 |   14.81  |  38.46  |  37.5   |
 ```
 
 **Frontend Coverage:**
+
 ```
 File           | % Stmts | % Branch | % Funcs | % Lines |
 ---------------|---------|----------|---------|---------|
@@ -216,10 +296,12 @@ stores/        |     100 |      100 |     100 |     100 |
 ### Test Suites
 
 **Backend Tests (7 tests):**
+
 - ✅ AuthService: User registration, login, token validation
 - ✅ VehicleService: CRUD operations, pagination, error handling
 
 **Frontend Tests (33 tests):**
+
 - ✅ AuthStore: State management, persistence, authentication flow
 - ✅ Button Component: All variants, sizes, interactions, accessibility
 - ✅ Utils: Utility functions, class name merging
@@ -234,7 +316,7 @@ npm run test
 # Backend tests only
 cd backend && npm run test:coverage
 
-# Frontend tests only  
+# Frontend tests only
 cd frontend && npm run test:coverage
 
 # Watch mode for development
