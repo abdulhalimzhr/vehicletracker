@@ -159,6 +159,11 @@ jobs:
     steps:
       - name: Deploy (bootstrap-on-deploy)
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          DOMAIN: ${{ secrets.DOMAIN }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          JWT_REFRESH_SECRET: ${{ secrets.JWT_REFRESH_SECRET }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
@@ -177,7 +182,7 @@ jobs:
               sudo apt-get install -y curl ca-certificates gnupg
             fi
 
-            # 1) docker engine + compose plugin (idempotent)
+            # 1) Docker Engine + compose plugin (idempotent)
             if ! command -v docker >/dev/null 2>&1; then
               echo "Installing Docker Engine..."
               sudo install -m 0755 -d /etc/apt/keyrings
@@ -193,38 +198,40 @@ jobs:
               echo "Docker already installed."
             fi
 
-            # 2) directories
+            # 2) Directories
             sudo mkdir -p "$APP/nginx/ssl"
             sudo chown -R $USER:$USER "$APP"
 
-            # 3) .env (create once; prefer secrets from GitHub if provided)
+            # 3) .env (create once; prefer secrets if provided)
             if [ ! -f "$APP/.env" ]; then
               echo "Creating .env..."
-              DOMAIN_VAL="${DOMAIN:-}"
-              if [ -z "$DOMAIN_VAL" ]; then
-                echo "WARNING: \$DOMAIN secret not set; using example.com (change later in $APP/.env)."
-                DOMAIN_VAL="example.com"
-              fi
               PG_PASS_VAL="${POSTGRES_PASSWORD:-$(openssl rand -base64 32)}"
               JWT_VAL="${JWT_SECRET:-$(openssl rand -base64 64)}"
               JWT_R_VAL="${JWT_REFRESH_SECRET:-$(openssl rand -base64 64)}"
-              cat > "$APP/.env" <<EOF
-              POSTGRES_PASSWORD=${PG_PASS_VAL}
-              JWT_SECRET=${JWT_VAL}
-              JWT_REFRESH_SECRET=${JWT_R_VAL}
-              DOMAIN=${DOMAIN_VAL}
-              EOF
+              DOMAIN_VAL="${DOMAIN:-example.com}"
+              {
+                echo "POSTGRES_PASSWORD=${PG_PASS_VAL}"
+                echo "JWT_SECRET=${JWT_VAL}"
+                echo "JWT_REFRESH_SECRET=${JWT_R_VAL}"
+                echo "DOMAIN=${DOMAIN_VAL}"
+              } > "$APP/.env"
             fi
 
             set -a
             . "$APP/.env"
             set +a
 
-            if [ ! -f "$APP/nginx/ssl/fullchain.pem" ] || [ ! -f "$APP/nginx/ssl/privkey.pem" ]; then
+            # 4) TLS first issue (guarded)
+            SKIP_TLS=0
+            if [ -z "${DOMAIN:-}" ] || [ "$DOMAIN" = "example.com" ]; then
+              echo "Skipping TLS issue (DOMAIN is empty/example.com)."
+              SKIP_TLS=1
+            fi
+
+            if [ $SKIP_TLS -eq 0 ] && { [ ! -f "$APP/nginx/ssl/fullchain.pem" ] || [ ! -f "$APP/nginx/ssl/privkey.pem" ]; }; then
               echo "Issuing Let's Encrypt cert for ${DOMAIN}..."
               if ! command -v certbot >/dev/null 2>&1; then
-                sudo apt-get update -y
-                sudo apt-get install -y certbot
+                sudo apt-get update -y && sudo apt-get install -y certbot
               fi
               sudo fuser -k 80/tcp || true
               sudo fuser -k 443/tcp || true
@@ -233,10 +240,10 @@ jobs:
               sudo cp /etc/letsencrypt/live/${DOMAIN}/privkey.pem   "$APP/nginx/ssl/privkey.pem"
               sudo chown -R $USER:$USER "$APP/nginx/ssl"
             else
-              echo "TLS certs already present."
+              echo "TLS step skipped or already present."
             fi
 
-            # 5) fetch compose & nginx from this commit
+            # 5) Fetch compose & nginx from the same commit (public repo)
             echo "Fetching compose & nginx from commit ${COMMIT}..."
             curl -fsSL "https://raw.githubusercontent.com/abdulhalimzhr/vehicletracker/${COMMIT}/docker-compose.prod.yml" -o "$APP/docker-compose.prod.yml"
             curl -fsSL "https://raw.githubusercontent.com/abdulhalimzhr/vehicletracker/${COMMIT}/nginx/nginx.conf" -o "$APP/nginx/nginx.conf"
@@ -246,15 +253,12 @@ jobs:
               sed -i "s|\${DOMAIN}|${DOMAIN}|g" "$APP/nginx/nginx.conf"
             fi
 
-            # 6) deploy (pull-only)
+            # 6) Deploy (pull-only)
             cd "$APP"
             docker compose -f docker-compose.prod.yml pull
-
-            # optional: DB migrations (uncomment if backend supports it)
             # docker compose -f docker-compose.prod.yml run --rm backend npm run prisma:migrate:deploy || true
-
             docker compose -f docker-compose.prod.yml up -d
-
             docker image prune -f || true
 
             echo "✅ Deploy complete → https://${DOMAIN}"
+
