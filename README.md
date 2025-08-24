@@ -5,9 +5,9 @@ Full-stack application for tracking vehicle status with real-time monitoring and
 > Track vehicles, generate reports, and monitor fleet status in real-time!
 
 ## Preview
+
 <img width="1906" height="969" alt="image" src="https://github.com/user-attachments/assets/e1d319cb-fdba-4edd-9e93-3f69d189efa9" />
 <img width="1914" height="970" alt="image" src="https://github.com/user-attachments/assets/d0f3d8f7-77ec-438f-8e3d-e0ee77cc6f2f" />
-
 
 ## Tech Stack
 
@@ -31,8 +31,10 @@ Full-stack application for tracking vehicle status with real-time monitoring and
 
 - Docker & Docker Compose
 - GitHub Actions CI/CD
-- Nginx reverse proxy
-- SSL with Let's Encrypt
+- Nginx reverse proxy with SSL/HTTPS
+- Let's Encrypt automatic SSL certificates
+- Automated database migrations and seeding
+- Production deployment to VPS
 
 ## Quick Start
 
@@ -67,7 +69,7 @@ docker-compose up -d postgres
 cd backend
 npm install
 npm run db:migrate
-npm run db:seed
+npm run db:seed  # Creates admin@example.com and user@example.com accounts
 npm run dev
 
 # Frontend setup (new terminal)
@@ -185,6 +187,14 @@ A     www.your-domain.com  → YOUR_VPS_IP
 - API Health: `https://your-domain.com/api/health`
 - API Docs: `https://your-domain.com/api-docs`
 
+**Automatic Features:**
+
+- ✅ Database migrations run automatically
+- ✅ Database seeding with demo data (admin/user accounts + sample vehicles)
+- ✅ SSL certificates generated automatically with Let's Encrypt
+- ✅ HTTP to HTTPS redirect
+- ✅ Production environment variables configured
+
 **Step 4: Service Management**
 
 ```bash
@@ -225,7 +235,56 @@ sudo certbot --nginx -d your-domain.com
 
 ## API Documentation
 
-Visit `http://localhost:3000/api-docs` for Swagger documentation.
+**Development**: `http://localhost:3000/api-docs`  
+**Production**: `https://vehicletracker.abdulhalimzhr.com/api-docs`
+
+## Deployment Status
+
+✅ **Current Production Deployment**:
+
+- **URL**: [https://vehicletracker.abdulhalimzhr.com](https://vehicletracker.abdulhalimzhr.com)
+- **Status**: Live and operational
+- **SSL**: Let's Encrypt certificate (auto-renewal enabled)
+- **Database**: PostgreSQL with automated migrations and seeding
+- **CI/CD**: GitHub Actions with automated deployment on push to `master`
+
+### Deployment Features
+
+- **Automatic SSL**: Let's Encrypt certificates with auto-renewal
+- **Database Management**: Automated migrations and seeding on deployment
+- **Health Monitoring**: Container health checks for all services
+- **Zero-Downtime**: Rolling updates with Docker Compose
+- **Environment Detection**: Frontend automatically detects API URL based on environment
+
+### Troubleshooting
+
+**If deployment fails:**
+
+```bash
+# Check container status
+docker compose -f docker-compose.prod.yml ps
+
+# Check logs
+docker compose -f docker-compose.prod.yml logs nginx
+docker compose -f docker-compose.prod.yml logs backend
+
+# Restart services
+docker compose -f docker-compose.prod.yml restart
+```
+
+**If SSL issues occur:**
+
+```bash
+# Check SSL certificates
+openssl x509 -in /opt/vehicle-tracker/nginx/ssl/fullchain.pem -text -noout
+
+# Regenerate SSL certificates
+sudo /opt/vehicle-tracker/scripts/setup-ssl.sh your-domain.com
+```
+
+## Live Demo
+
+🌐 **Production URL**: [https://vehicletracker.abdulhalimzhr.com](https://vehicletracker.abdulhalimzhr.com)
 
 ## Demo Credentials
 
@@ -241,6 +300,8 @@ Visit `http://localhost:3000/api-docs` for Swagger documentation.
 - Password: `password123`
 - Role: USER (read-only access)
 
+> **Note**: Demo data is automatically seeded on deployment, including sample vehicles and trip history.
+
 ## Key Features
 
 - 🔐 **Authentication & Authorization**: JWT with role-based access control
@@ -250,6 +311,8 @@ Visit `http://localhost:3000/api-docs` for Swagger documentation.
 - 🛡️ **Security**: Input validation, CORS protection, security headers
 - 🔄 **Real-time**: Real-time data with React Query
 - 📈 **Monitoring**: Health checks and comprehensive logging
+- 🚀 **Production Ready**: Automated CI/CD with Docker, SSL, and database management
+- 🌐 **Live Demo**: Deployed at [vehicletracker.abdulhalimzhr.com](https://vehicletracker.abdulhalimzhr.com)
 
 ## Architecture
 

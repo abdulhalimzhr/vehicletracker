@@ -102,6 +102,14 @@ if [ "$SSL_AVAILABLE" = true ]; then
             proxy_set_header X-Forwarded-Proto \$scheme;
         }
 
+        location /api-docs {
+            proxy_pass http://backend;
+            proxy_set_header Host \$host;
+            proxy_set_header X-Real-IP \$remote_addr;
+            proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto \$scheme;
+        }
+
         location / {
             proxy_pass http://frontend;
             proxy_set_header Host \$host;
@@ -116,6 +124,14 @@ else
     cat >> "$APP_DIR/nginx/nginx.conf" << EOF
         
         location /api/ {
+            proxy_pass http://backend;
+            proxy_set_header Host \$host;
+            proxy_set_header X-Real-IP \$remote_addr;
+            proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto \$scheme;
+        }
+
+        location /api-docs {
             proxy_pass http://backend;
             proxy_set_header Host \$host;
             proxy_set_header X-Real-IP \$remote_addr;
