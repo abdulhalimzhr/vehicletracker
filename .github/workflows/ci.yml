@@ -212,9 +212,9 @@ jobs:
             DOM_VAL="${DOMAIN:-example.com}"
             DOCKER_USERNAME="${DOCKER_USERNAME}"
             {
-              echo "POSTGRES_PASSWORD=${PG_PASS}"
-              echo "JWT_SECRET=${JWT}"
-              echo "JWT_REFRESH_SECRET=${JWT_R}"
+              echo "POSTGRES_PASSWORD="${PG_PASS}"
+              echo "JWT_SECRET=\"${JWT}\""
+              echo "JWT_REFRESH_SECRET=\"${JWT_R}\""
               echo "DOMAIN=${DOM_VAL}"
               echo "DOCKER_USERNAME=${DOCKER_USERNAME}"
             } > "$APP/.env"
