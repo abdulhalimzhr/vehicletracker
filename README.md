@@ -2,6 +2,8 @@
 
 Full-stack application for tracking vehicle status with real-time monitoring and reporting capabilities.
 
+> Track vehicles, generate reports, and monitor fleet status in real-time!
+
 ## Tech Stack
 
 **Backend:**
