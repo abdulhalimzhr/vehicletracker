@@ -65,10 +65,20 @@ jobs:
           JWT_REFRESH_SECRET: test-refresh-secret
         run: npm test -- --coverage
 
-      - name: Upload coverage reports to Codecov
+      - name: Verify backend coverage files
+        run: |
+          echo "Checking for backend coverage files..."
+          ls -la ./backend/coverage/ || echo "No coverage directory found"
+          test -f ./backend/coverage/lcov.info && echo "✅ lcov.info found" || echo "❌ lcov.info missing"
+
+      - name: Upload backend coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./backend/coverage/lcov.info
+          flags: backend
+          name: backend-coverage
+          fail_ci_if_error: false
 
       - name: Lint backend code
         working-directory: ./backend
@@ -94,10 +104,20 @@ jobs:
         working-directory: ./frontend
         run: npm run test:coverage
 
-      - name: Upload coverage reports to Codecov
+      - name: Verify frontend coverage files
+        run: |
+          echo "Checking for frontend coverage files..."
+          ls -la ./frontend/coverage/ || echo "No coverage directory found"
+          test -f ./frontend/coverage/lcov.info && echo "✅ lcov.info found" || echo "❌ lcov.info missing"
+
+      - name: Upload frontend coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./frontend/coverage/lcov.info
+          flags: frontend
+          name: frontend-coverage
+          fail_ci_if_error: false
 
       - name: Lint frontend code
         working-directory: ./frontend
