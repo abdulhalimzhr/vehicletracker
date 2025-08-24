@@ -40,27 +40,19 @@ http {
         location /.well-known/acme-challenge/ {
             root /var/www/certbot;
         }
-        
-        location /api/ {
-            proxy_pass http://backend;
-            proxy_set_header Host \$host;
-            proxy_set_header X-Real-IP \$remote_addr;
-            proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto \$scheme;
-        }
-
-        location / {
-            proxy_pass http://frontend;
-            proxy_set_header Host \$host;
-            proxy_set_header X-Real-IP \$remote_addr;
-            proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto \$scheme;
-        }
-    }
 EOF
 
 # Add HTTPS server block if certificates exist
 if [ "$CONFIG_TYPE" = "https" ]; then
+    # Add HTTPS redirect to HTTP server
+    cat >> "$APP_DIR/nginx/nginx.conf" << EOF
+        
+        # Redirect HTTP to HTTPS
+        location / {
+            return 301 https://\$server_name\$request_uri;
+        }
+    }
+EOF
     cat >> "$APP_DIR/nginx/nginx.conf" << EOF
 
     # HTTPS server
@@ -81,6 +73,27 @@ if [ "$CONFIG_TYPE" = "https" ]; then
         add_header X-Content-Type-Options nosniff;
         add_header X-XSS-Protection "1; mode=block";
 
+        location /api/ {
+            proxy_pass http://backend;
+            proxy_set_header Host \$host;
+            proxy_set_header X-Real-IP \$remote_addr;
+            proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto \$scheme;
+        }
+
+        location / {
+            proxy_pass http://frontend;
+            proxy_set_header Host \$host;
+            proxy_set_header X-Real-IP \$remote_addr;
+            proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto \$scheme;
+        }
+    }
+EOF
+else
+    # No HTTPS, serve content on HTTP
+    cat >> "$APP_DIR/nginx/nginx.conf" << EOF
+        
         location /api/ {
             proxy_pass http://backend;
             proxy_set_header Host \$host;
