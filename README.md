@@ -1,5 +1,10 @@
 # Vehicle Tracker Dashboard
 
+[![CI/CD Pipeline](https://github.com/abdulhalimzhr/vehicletracker/actions/workflows/ci.yml/badge.svg)](https://github.com/abdulhalimzhr/vehicletracker/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/abdulhalimzhr/vehicletracker/branch/master/graph/badge.svg)](https://codecov.io/gh/abdulhalimzhr/vehicletracker)
+[![Backend Coverage](https://codecov.io/gh/abdulhalimzhr/vehicletracker/branch/master/graph/badge.svg?flag=backend)](https://codecov.io/gh/abdulhalimzhr/vehicletracker)
+[![Frontend Coverage](https://codecov.io/gh/abdulhalimzhr/vehicletracker/branch/master/graph/badge.svg?flag=frontend)](https://codecov.io/gh/abdulhalimzhr/vehicletracker)
+
 Full-stack application for tracking vehicle status with real-time monitoring and reporting capabilities.
 
 > Track vehicles, generate reports, and monitor fleet status in real-time!
