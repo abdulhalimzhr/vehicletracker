@@ -19,14 +19,24 @@ export const errorHandler = (
     });
   }
 
-  if (error.code === "P2002") {
+  if (
+    error &&
+    typeof error === "object" &&
+    "code" in error &&
+    error.code === "P2002"
+  ) {
     return res.status(409).json({
       error: "Duplicate entry",
       message: "Resource already exists",
     });
   }
 
-  if (error.code === "P2025") {
+  if (
+    error &&
+    typeof error === "object" &&
+    "code" in error &&
+    error.code === "P2025"
+  ) {
     return res.status(404).json({
       error: "Not found",
       message: "Resource not found",
@@ -37,7 +47,9 @@ export const errorHandler = (
     error: "Internal server error",
     message:
       process.env.NODE_ENV === "development"
-        ? error.message
+        ? error && typeof error === "object" && "message" in error
+          ? String(error.message)
+          : "Unknown error"
         : "Something went wrong",
   });
 };
