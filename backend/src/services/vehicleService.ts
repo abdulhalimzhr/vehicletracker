@@ -42,7 +42,9 @@ export class VehicleService {
     });
 
     if (!vehicle) {
-      throw new Error("Vehicle not found");
+      const error = new Error("Vehicle not found");
+      (error as any).statusCode = 404;
+      throw error;
     }
 
     return vehicle;

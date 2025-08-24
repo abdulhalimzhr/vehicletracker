@@ -3,7 +3,7 @@ import { ZodError } from "zod";
 
 export const errorHandler = (
   error: unknown,
-  req: Request,
+  _req: Request,
   res: Response,
   _next: NextFunction,
 ): void | Response => {
@@ -17,6 +17,31 @@ export const errorHandler = (
         message: err.message,
       })),
     });
+  }
+
+  // Handle custom status code errors
+  if (
+    error &&
+    typeof error === "object" &&
+    "statusCode" in error &&
+    typeof error.statusCode === "number"
+  ) {
+    const statusCode = error.statusCode;
+    const message = "message" in error ? String(error.message) : "Error";
+    
+    if (statusCode === 404) {
+      return res.status(404).json({
+        error: "Not found",
+        message,
+      });
+    }
+    
+    if (statusCode === 401) {
+      return res.status(401).json({
+        error: "Invalid credentials",
+        message,
+      });
+    }
   }
 
   if (

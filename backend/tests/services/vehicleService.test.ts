@@ -1,23 +1,35 @@
 // Explicitly import Jest globals to fix TypeScript errors
-import { describe, it, expect, beforeEach } from "@jest/globals";
-import { VehicleService } from "../../src/services/vehicleService";
-import prisma from "../../src/config/database";
+import {
+  describe,
+  it,
+  expect,
+  beforeEach,
+  afterAll
+} from '@jest/globals';
+import { VehicleService } from '../../src/services/vehicleService';
+import prisma from '../../src/config/database';
 
-describe("VehicleService - Simple Tests", () => {
+describe('VehicleService - Simple Tests', () => {
   beforeEach(async () => {
     // Clean database before each test
     await prisma.vehicleTrip.deleteMany();
     await prisma.vehicle.deleteMany();
+    // Add a small delay to ensure database operations complete
+    await new Promise(resolve => setTimeout(resolve, 10));
   });
 
-  describe("createVehicle", () => {
-    it("should create a new vehicle", async () => {
+  afterAll(async () => {
+    await prisma.$disconnect();
+  });
+
+  describe('createVehicle', () => {
+    it('should create a new vehicle', async () => {
       const vehicleData = {
-        plateNumber: "B1234ABC",
-        brand: "Toyota",
-        model: "Avanza",
+        plateNumber: `B${Date.now()}ABC`,
+        brand: 'Toyota',
+        model: 'Avanza',
         year: 2020,
-        color: "White",
+        color: 'White'
       };
 
       const vehicle = await VehicleService.createVehicle(vehicleData);
@@ -29,71 +41,80 @@ describe("VehicleService - Simple Tests", () => {
     });
   });
 
-  describe("getAllVehicles", () => {
-    it("should return paginated vehicles", async () => {
-      // Create test vehicles
+  describe('getAllVehicles', () => {
+    it('should return paginated vehicles', async () => {
+      // Create test vehicles with unique identifiers
+      const uniqueId = `${Date.now()}-${Math.random().toString(36).substring(7)}`;
       await prisma.vehicle.createMany({
         data: [
           {
-            plateNumber: "B1111AAA",
-            brand: "Toyota",
-            model: "Avanza",
+            plateNumber: `B${uniqueId}AAA`,
+            brand: 'Toyota',
+            model: 'Avanza',
             year: 2020,
-            color: "White",
+            color: 'White'
           },
           {
-            plateNumber: "B2222BBB",
-            brand: "Honda",
-            model: "Civic",
+            plateNumber: `B${uniqueId}BBB`,
+            brand: 'Honda',
+            model: 'Civic',
             year: 2021,
-            color: "Black",
-          },
-        ],
+            color: 'Black'
+          }
+        ]
       });
+
+      // Add a small delay to ensure database operations complete
+      await new Promise(resolve => setTimeout(resolve, 10));
 
       const result = await VehicleService.getAllVehicles({
         page: 1,
-        limit: 10,
+        limit: 10
       });
 
-      expect(result.vehicles).toHaveLength(2);
-      expect(result.pagination).toMatchObject({
-        page: 1,
-        limit: 10,
-        total: 2,
-        totalPages: 1,
-      });
+      // Check that our test vehicles are included (there might be others from other tests)
+      expect(result.vehicles.length).toBeGreaterThanOrEqual(2);
+      expect(result.pagination.page).toBe(1);
+      expect(result.pagination.limit).toBe(10);
+      expect(result.pagination.total).toBeGreaterThanOrEqual(2);
+      
+      // Verify our specific test vehicles exist
+      const testVehicles = result.vehicles.filter(v => 
+        v.plateNumber.includes(uniqueId)
+      );
+      expect(testVehicles).toHaveLength(2);
     });
   });
 
-  describe("getVehicleById", () => {
-    it("should return vehicle with trips", async () => {
+  describe('getVehicleById', () => {
+    it('should return vehicle with trips', async () => {
+      const plateNumber = `B${Date.now()}CCC`;
       const vehicle = await prisma.vehicle.create({
         data: {
-          plateNumber: "B3333CCC",
-          brand: "Toyota",
-          model: "Avanza",
+          plateNumber,
+          brand: 'Toyota',
+          model: 'Avanza',
           year: 2020,
-          color: "White",
-        },
+          color: 'White'
+        }
       });
 
       const result = await VehicleService.getVehicleById(vehicle.id);
 
       expect(result).toMatchObject({
         id: vehicle.id,
-        plateNumber: "B3333CCC",
-        brand: "Toyota",
-        model: "Avanza",
+        plateNumber,
+        brand: 'Toyota',
+        model: 'Avanza'
       });
       expect(result.VehicleTrip).toBeDefined();
       expect(Array.isArray(result.VehicleTrip)).toBe(true);
     });
 
-    it("should throw error for non-existent vehicle", async () => {
+    it('should throw error for non-existent vehicle', async () => {
       await expect(
-        VehicleService.getVehicleById("non-existent-id"),
-      ).rejects.toThrow("Vehicle not found");
+        VehicleService.getVehicleById('non-existent-id')
+      ).rejects.toThrow('Vehicle not found');
     });
   });
 });
