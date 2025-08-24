@@ -17,9 +17,5 @@ afterAll(async () => {
   await prisma.$disconnect();
 });
 
-beforeEach(async () => {
-  // Clean up in correct order due to foreign key constraints
-  await prisma.vehicleTrip.deleteMany();
-  await prisma.vehicle.deleteMany();
-  await prisma.user.deleteMany();
-});
+// Note: Removed global beforeEach cleanup to avoid race conditions
+// Individual tests should handle their own isolation using unique identifiers

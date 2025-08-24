@@ -10,7 +10,9 @@ export class AuthService {
     });
 
     if (!user || !(await bcrypt.compare(data.password, user.password))) {
-      throw new Error("Invalid credentials");
+      const error = new Error("Invalid credentials");
+      (error as any).statusCode = 401;
+      throw error;
     }
 
     const accessToken = jwt.sign(
@@ -48,10 +50,12 @@ export class AuthService {
     });
 
     return {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+      },
     };
   }
 
