@@ -24,8 +24,8 @@ RUN npm run build
 
 FROM node:18-alpine AS production
 WORKDIR /app
-# Install OpenSSL and other dependencies for Prisma
-RUN apk add --no-cache openssl libc6-compat
+# Install OpenSSL and other dependencies for Prisma, plus curl for health checks
+RUN apk add --no-cache openssl libc6-compat curl
 COPY --from=base /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/prisma ./prisma
