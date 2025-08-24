@@ -223,51 +223,21 @@ jobs:
             set -a; . "$APP/.env"; set +a
             echo "[env] effective DOMAIN=${DOMAIN:-<empty>} (from .env)"
 
-            # 4) Fetch compose & nginx from same commit
-            echo "[fetch] docker-compose.prod.yml @ $COMMIT"
+            # 4) Fetch files from repo
+            echo "[fetch] downloading deployment files @ $COMMIT"
             curl -fsSL "https://raw.githubusercontent.com/abdulhalimzhr/vehicletracker/${COMMIT}/docker-compose.prod.yml" -o "$APP/docker-compose.prod.yml"
-            echo "[fetch] nginx.conf @ $COMMIT"
-            curl -fsSL "https://raw.githubusercontent.com/abdulhalimzhr/vehicletracker/${COMMIT}/nginx/nginx.conf" -o "$APP/nginx/nginx.conf" || true
-            # inject ${DOMAIN} if present
-            if grep -q '\${DOMAIN}' "$APP/nginx/nginx.conf" 2>/dev/null; then
-              sed -i "s|\${DOMAIN}|${DOMAIN}|g" "$APP/nginx/nginx.conf"
-            fi
+            curl -fsSL "https://raw.githubusercontent.com/abdulhalimzhr/vehicletracker/${COMMIT}/scripts/setup-ssl.sh" -o "$APP/setup-ssl.sh"
+            curl -fsSL "https://raw.githubusercontent.com/abdulhalimzhr/vehicletracker/${COMMIT}/scripts/generate-nginx-config.sh" -o "$APP/generate-nginx-config.sh"
+            chmod +x "$APP/setup-ssl.sh" "$APP/generate-nginx-config.sh"
 
-            # 4.5) Generate Let's Encrypt certificates if they don't exist
-            if [ ! -f "$APP/nginx/ssl/fullchain.pem" ] && [ -n "${DOMAIN:-}" ] && [ "$DOMAIN" != "example.com" ]; then
-              echo "[ssl] generating Let's Encrypt certificates for $DOMAIN"
-              
-              # Install certbot if not present
-              if ! command -v certbot >/dev/null 2>&1; then
-                sudo apt-get update -y
-                sudo apt-get install -y certbot
-              fi
-              
-              # Stop any running nginx to free port 80
-              sudo docker compose -f docker-compose.prod.yml stop nginx || true
-              
-              # Generate certificate using standalone mode
-              sudo certbot certonly --standalone --non-interactive --agree-tos \
-                --email "admin@${DOMAIN}" \
-                -d "${DOMAIN}" -d "www.${DOMAIN}" || {
-                echo "[ssl] Let's Encrypt failed, generating self-signed certificate"
-                sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-                  -keyout "$APP/nginx/ssl/privkey.pem" \
-                  -out "$APP/nginx/ssl/fullchain.pem" \
-                  -subj "/C=US/ST=State/L=City/O=Organization/CN=${DOMAIN}"
-              }
-              
-              # Copy Let's Encrypt certificates if they were generated
-              if [ -f "/etc/letsencrypt/live/${DOMAIN}/fullchain.pem" ]; then
-                sudo cp "/etc/letsencrypt/live/${DOMAIN}/fullchain.pem" "$APP/nginx/ssl/"
-                sudo cp "/etc/letsencrypt/live/${DOMAIN}/privkey.pem" "$APP/nginx/ssl/"
-                sudo chown -R "$ME":"$(id -gn "$ME")" "$APP/nginx/ssl"
-              fi
-            else
-              echo "[ssl] certificates already exist or domain not configured"
-            fi
+            # 5) Setup SSL and generate nginx config
+            echo "[ssl] setting up SSL certificates"
+            sudo "$APP/setup-ssl.sh" "${DOMAIN}"
+            
+            echo "[nginx] generating nginx configuration"
+            sudo "$APP/generate-nginx-config.sh" "${DOMAIN}"
 
-            # 5) Deploy (always use sudo docker until next login)
+            # 6) Deploy (always use sudo docker until next login)
             cd "$APP"
             echo "[compose] pulling images…"
             sudo docker compose -f docker-compose.prod.yml pull || true
@@ -282,34 +252,14 @@ jobs:
             echo "[docker] prune old images"
             sudo docker image prune -f || true
 
-            # 6) Setup certificate renewal cron job
+            # 7) Setup certificate renewal cron job
             if [ -n "${DOMAIN:-}" ] && [ "$DOMAIN" != "example.com" ]; then
               echo "[ssl] setting up certificate renewal"
-              # Create renewal script
-              sudo tee /usr/local/bin/renew-certs.sh > /dev/null << 'EOF'
-            #!/bin/bash
-            APP="/opt/vehicle-tracker"
-            cd "$APP"
-
-            # Stop nginx to free port 80
-            docker compose -f docker-compose.prod.yml stop nginx
-
-            # Renew certificates
-            certbot renew --standalone --quiet
-
-            # Copy renewed certificates
-            if [ -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ]; then
-              cp "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" "$APP/nginx/ssl/"
-              cp "/etc/letsencrypt/live/$DOMAIN/privkey.pem" "$APP/nginx/ssl/"
-            fi
-
-            # Restart nginx
-            docker compose -f docker-compose.prod.yml start nginx
-            EOF
+              curl -fsSL "https://raw.githubusercontent.com/abdulhalimzhr/vehicletracker/${COMMIT}/scripts/renew-certs.sh" -o /usr/local/bin/renew-certs.sh
               sudo chmod +x /usr/local/bin/renew-certs.sh
               
               # Add to crontab if not already present
-              (sudo crontab -l 2>/dev/null | grep -v renew-certs; echo "0 3 * * * /usr/local/bin/renew-certs.sh") | sudo crontab -
+              (sudo crontab -l 2>/dev/null | grep -v renew-certs; echo "0 3 * * * DOMAIN=${DOMAIN} /usr/local/bin/renew-certs.sh") | sudo crontab -
             fi
 
             echo "✅ Deployment complete!"
