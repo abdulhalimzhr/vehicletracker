@@ -32,3 +32,12 @@ docker compose -f docker-compose.prod.yml --env-file .env run --rm \
     backend npx prisma migrate deploy
 
 echo "Migration completed successfully!"
+
+# Run database seeding
+echo "Running database seeding..."
+docker compose -f docker-compose.prod.yml --env-file .env run --rm \
+    -e DATABASE_URL="postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/vehicle_tracker" \
+    -e NODE_ENV="production" \
+    backend npm run db:seed
+
+echo "Database seeding completed successfully!"

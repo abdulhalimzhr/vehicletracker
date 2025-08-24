@@ -285,8 +285,10 @@ jobs:
             echo "[migrate] waiting for backend to be healthy..."
             for i in {1..30}; do
               if sudo docker compose -f docker-compose.prod.yml --env-file .env ps backend | grep -q "healthy"; then
-                echo "[migrate] backend is healthy, trying migration again"
+                echo "[migrate] backend is healthy, trying migration and seeding again"
                 sudo docker compose -f docker-compose.prod.yml --env-file .env exec backend npx prisma migrate deploy || echo "[migrate] migration failed again, continuing..."
+                echo "[seed] running database seeding..."
+                sudo docker compose -f docker-compose.prod.yml --env-file .env exec backend npm run db:seed || echo "[seed] seeding failed, continuing..."
                 break
               fi
               echo "[migrate] waiting... ($i/30)"
