@@ -162,71 +162,91 @@ jobs:
           test -n "${{ secrets.VPS_HOST }}" || (echo "Missing VPS_HOST"; exit 1)
           test -n "${{ secrets.VPS_USERNAME }}" || (echo "Missing VPS_USERNAME"; exit 1)
 
-      - name: Simple Deploy
+      - name: Simple Deploy (idempotent)
         uses: appleboy/ssh-action@v1.0.3
         env:
           DOMAIN: ${{ secrets.DOMAIN }}
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-          JWT_SECRET: ${{ secrets.JWT_SECRET || '' }}
-          JWT_REFRESH_SECRET: ${{ secrets.JWT_REFRESH_SECRET || '' }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script_stop: false
-          envs: GITHUB_SHA,DOMAIN,POSTGRES_PASSWORD,JWT_SECRET,JWT_REFRESH_SECRET
+          envs: GITHUB_SHA,DOMAIN,POSTGRES_PASSWORD
           script: |
-            #!/bin/bash
-            
+            #!/usr/bin/env bash
+            set -u
             APP="/opt/vehicle-tracker"
             COMMIT="${GITHUB_SHA}"
-            
-            echo "=== Starting deployment ==="
-            echo "DOMAIN: ${DOMAIN:-<empty>}"
-            
-            # Install Docker if needed (simple method)
-            if ! command -v docker &> /dev/null; then
-              echo "Installing Docker..."
+            ME="$(id -un)"
+
+            echo "=== Deploy start ==="
+            echo "DOMAIN=${DOMAIN:-<empty>}  COMMIT=$COMMIT"
+
+            # 0) Ensure curl
+            if ! command -v curl >/dev/null 2>&1; then
+              sudo apt-get update -y && sudo apt-get install -y curl ca-certificates gnupg || true
+            fi
+
+            # 1) Install Docker (simple path)
+            if ! command -v docker >/dev/null 2>&1; then
+              echo "[docker] installing..."
               curl -fsSL https://get.docker.com -o get-docker.sh
               sudo sh get-docker.sh
-              sudo usermod -aG docker $(whoami)
-              rm get-docker.sh
+              sudo usermod -aG docker "$ME" || true
+              rm -f get-docker.sh
             else
-              echo "Docker already installed"
+              echo "[docker] already installed"
             fi
-            
-            # Create directories
-            sudo mkdir -p "$APP"
-            sudo chown -R $(whoami):$(whoami) "$APP"
-            
-            # Create .env file
+
+            # 2) Prepare dir
+            sudo mkdir -p "$APP/nginx/ssl"
+            sudo chown -R "$ME":"$(id -gn "$ME")" "$APP"
+
+            # 3) .env (generate once; reuse later)
             if [ ! -f "$APP/.env" ]; then
-              echo "Creating .env file..."
-              cat > "$APP/.env" << EOF
-            POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-$(openssl rand -base64 32)}
-            JWT_SECRET=${JWT_SECRET:-$(openssl rand -base64 64)}
-            JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-$(openssl rand -base64 64)}
-            DOMAIN=${DOMAIN:-example.com}
-            EOF
+              echo "[env] creating $APP/.env"
+              PG_PASS="${POSTGRES_PASSWORD:-$(openssl rand -base64 32)}"
+              JWT="${JWT_SECRET:-$(openssl rand -base64 64)}"                  # env likely unset -> generate
+              JWT_R="${JWT_REFRESH_SECRET:-$(openssl rand -base64 64)}"
+              DOM_VAL="${DOMAIN:-example.com}"
+              {
+                echo "POSTGRES_PASSWORD=${PG_PASS}"
+                echo "JWT_SECRET=${JWT}"
+                echo "JWT_REFRESH_SECRET=${JWT_R}"
+                echo "DOMAIN=${DOM_VAL}"
+              } > "$APP/.env"
+            else
+              echo "[env] $APP/.env exists — reusing"
             fi
-            
-            # Download compose file
-            echo "Downloading docker-compose.prod.yml..."
+
+            # shellcheck disable=SC1091
+            set -a; . "$APP/.env"; set +a
+            echo "[env] effective DOMAIN=${DOMAIN:-<empty>} (from .env)"
+
+            # 4) Fetch compose & nginx from same commit
+            echo "[fetch] docker-compose.prod.yml @ $COMMIT"
             curl -fsSL "https://raw.githubusercontent.com/abdulhalimzhr/vehicletracker/${COMMIT}/docker-compose.prod.yml" -o "$APP/docker-compose.prod.yml"
-            
-            # Deploy
+            echo "[fetch] nginx.conf @ $COMMIT"
+            curl -fsSL "https://raw.githubusercontent.com/abdulhalimzhr/vehicletracker/${COMMIT}/nginx/nginx.conf" -o "$APP/nginx/nginx.conf" || true
+            # inject ${DOMAIN} if present
+            if grep -q '\${DOMAIN}' "$APP/nginx/nginx.conf" 2>/dev/null; then
+              sed -i "s|\${DOMAIN}|${DOMAIN}|g" "$APP/nginx/nginx.conf"
+            fi
+
+            # 5) Deploy (always use sudo docker until next login)
             cd "$APP"
-            echo "Pulling latest images..."
-            docker compose -f docker-compose.prod.yml pull || true
-            
-            echo "Starting services..."
-            docker compose -f docker-compose.prod.yml up -d || true
-            
-            echo "Running database migrations..."
-            sleep 10
-            docker compose -f docker-compose.prod.yml exec -T backend npm run prisma:migrate:deploy || echo "Migration failed, continuing..."
-            
-            echo "Cleaning up old images..."
-            docker image prune -f || true
-            
+            echo "[compose] pulling images…"
+            sudo docker compose -f docker-compose.prod.yml pull || true
+
+            # (Optional) prisma migrate — run one-off container; safe-fail
+            echo "[migrate] running prisma migrate (non-fatal on fail)"
+            sudo docker compose -f docker-compose.prod.yml run --rm backend npm run prisma:migrate:deploy || true
+
+            echo "[compose] up -d…"
+            sudo docker compose -f docker-compose.prod.yml up -d || true
+
+            echo "[docker] prune old images"
+            sudo docker image prune -f || true
+
             echo "✅ Deployment complete!"
