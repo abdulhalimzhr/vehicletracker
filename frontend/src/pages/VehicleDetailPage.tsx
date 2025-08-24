@@ -58,28 +58,35 @@ export default function VehicleDetailPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigate('/dashboard')}
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Dashboard
-          </Button>
-          <h1 className="text-2xl font-bold text-gray-900">
+      <div className="flex flex-col">
+        <Button
+          className="w-fit text-xs"
+          variant="outline"
+          size="sm"
+          onClick={() => navigate('/dashboard')}
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to Dashboard
+        </Button>
+        <div className="flex justify-between items-center w-full flex-wrap">
+          <h1 className="text-2xl font-bold text-gray-900 my-4">
             {vehicleData?.brand} {vehicleData?.model}
           </h1>
+          <Button
+            onClick={handleDownloadReport}
+            disabled={isDownloading}
+            className="flex items-center sm:text-sm text-xs"
+          >
+            <Download className="h-4 w-4 me-1" />
+            {isDownloading ? (
+              'Downloading...'
+            ) : (
+              <>
+                Download<span className="hidden md:inline ms-1">Report</span>
+              </>
+            )}
+          </Button>
         </div>
-        <Button
-          onClick={handleDownloadReport}
-          disabled={isDownloading}
-          className="flex items-center space-x-2"
-        >
-          <Download className="h-4 w-4" />
-          <span>{isDownloading ? 'Downloading...' : 'Download Report'}</span>
-        </Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -167,7 +174,14 @@ export default function VehicleDetailPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Trip History - {selectedDate}</CardTitle>
+          <CardTitle>
+            Trip History -{' '}
+            {new Date(selectedDate).toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            })}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {statusLoading ? (
@@ -201,48 +215,57 @@ export default function VehicleDetailPage() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {status?.trips.map((trip: any) => {
-                    const duration = trip.endTime
-                      ? Math.round(
-                          (new Date(trip.endTime).getTime() -
-                            new Date(trip.startTime).getTime()) /
-                            1000 /
-                            60
-                        )
-                      : 0
+                  {status?.trips.map(
+                    (trip: {
+                      id: string
+                      status: string
+                      startTime: string
+                      endTime: string
+                      address: string
+                      duration: number
+                    }) => {
+                      const duration = trip.endTime
+                        ? Math.round(
+                            (new Date(trip.endTime).getTime() -
+                              new Date(trip.startTime).getTime()) /
+                              1000 /
+                              60
+                          )
+                        : 0
 
-                    return (
-                      <tr key={trip.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span
-                            className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                              trip.status === 'TRIP'
-                                ? 'bg-green-100 text-green-800'
-                                : trip.status === 'IDLE'
-                                ? 'bg-yellow-100 text-yellow-800'
-                                : 'bg-red-100 text-red-800'
-                            }`}
-                          >
-                            {trip.status}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {formatDateTime(trip.startTime)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {trip.endTime
-                            ? formatDateTime(trip.endTime)
-                            : 'Ongoing'}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {duration > 0 ? formatDuration(duration) : '-'}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {trip.address || 'N/A'}
-                        </td>
-                      </tr>
-                    )
-                  })}
+                      return (
+                        <tr key={trip.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span
+                              className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                trip.status === 'TRIP'
+                                  ? 'bg-green-100 text-green-800'
+                                  : trip.status === 'IDLE'
+                                  ? 'bg-yellow-100 text-yellow-800'
+                                  : 'bg-red-100 text-red-800'
+                              }`}
+                            >
+                              {trip.status}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {formatDateTime(trip.startTime)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {trip.endTime
+                              ? formatDateTime(trip.endTime)
+                              : 'Ongoing'}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {duration > 0 ? formatDuration(duration) : '-'}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {trip.address || 'N/A'}
+                          </td>
+                        </tr>
+                      )
+                    }
+                  )}
                 </tbody>
               </table>
             </div>
