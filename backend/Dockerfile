@@ -1,14 +1,14 @@
 FROM node:18-alpine AS base
 WORKDIR /app
-# Install OpenSSL for Prisma
-RUN apk add --no-cache openssl1.1-compat
+# Install OpenSSL and other dependencies for Prisma
+RUN apk add --no-cache openssl libc6-compat
 COPY package*.json ./
 RUN npm ci --only=production
 
 FROM node:18-alpine AS dev
 WORKDIR /app
-# Install OpenSSL for Prisma
-RUN apk add --no-cache openssl1.1-compat
+# Install OpenSSL and other dependencies for Prisma
+RUN apk add --no-cache openssl libc6-compat
 COPY package*.json ./
 RUN npm ci
 COPY . .
@@ -24,8 +24,8 @@ RUN npm run build
 
 FROM node:18-alpine AS production
 WORKDIR /app
-# Install OpenSSL for Prisma
-RUN apk add --no-cache openssl1.1-compat
+# Install OpenSSL and other dependencies for Prisma
+RUN apk add --no-cache openssl libc6-compat
 COPY --from=base /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/prisma ./prisma
