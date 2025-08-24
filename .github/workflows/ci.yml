@@ -171,10 +171,21 @@ jobs:
           script_stop: true
           envs: GITHUB_SHA,DOMAIN,POSTGRES_PASSWORD,JWT_SECRET,JWT_REFRESH_SECRET
           script: |
-            set -euo pipefail
+            set -Eeuo pipefail
+            trap 'echo "❌ Error on line $LINENO"; exit 1' ERR
+            set -x
 
             APP="/opt/vehicle-tracker"
             COMMIT="${GITHUB_SHA}"
+
+            # normalize user (avoid $USER being empty in non-interactive shells)
+            ME="$(id -un)"
+
+            # show incoming envs for sanity
+            echo "ENV DOMAIN=${DOMAIN:-<empty>}"
+            echo "ENV POSTGRES_PASSWORD=${POSTGRES_PASSWORD:+***set***}"
+            echo "ENV JWT_SECRET=${JWT_SECRET:+***set***}"
+            echo "ENV JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:+***set***}"
 
             # 0) base tools
             if ! command -v curl >/dev/null 2>&1; then
@@ -193,14 +204,14 @@ jobs:
                 | sudo tee /etc/apt/sources.list.d/docker.list >/dev/null
               sudo apt-get update -y
               sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-              sudo usermod -aG docker $USER || true
+              sudo usermod -aG docker "$ME" || true
             else
               echo "Docker already installed."
             fi
 
             # 2) Directories
             sudo mkdir -p "$APP/nginx/ssl"
-            sudo chown -R $USER:$USER "$APP"
+            sudo chown -R "$ME":"$ME" "$APP"
 
             # 3) .env (create once; prefer secrets if provided)
             if [ ! -f "$APP/.env" ]; then
@@ -228,7 +239,7 @@ jobs:
               SKIP_TLS=1
             fi
 
-            if [ $SKIP_TLS -eq 0 ] && { [ ! -f "$APP/nginx/ssl/fullchain.pem" ] || [ ! -f "$APP/nginx/ssl/privkey.pem" ]; }; then
+            if [ "$SKIP_TLS" -eq 0 ] && { [ ! -f "$APP/nginx/ssl/fullchain.pem" ] || [ ! -f "$APP/nginx/ssl/privkey.pem" ]; }; then
               echo "Issuing Let's Encrypt cert for ${DOMAIN}..."
               if ! command -v certbot >/dev/null 2>&1; then
                 sudo apt-get update -y && sudo apt-get install -y certbot
@@ -238,7 +249,7 @@ jobs:
               sudo certbot certonly --standalone -d "${DOMAIN}" -d "www.${DOMAIN}" --agree-tos -m "you@example.com" --non-interactive
               sudo cp /etc/letsencrypt/live/${DOMAIN}/fullchain.pem "$APP/nginx/ssl/fullchain.pem"
               sudo cp /etc/letsencrypt/live/${DOMAIN}/privkey.pem   "$APP/nginx/ssl/privkey.pem"
-              sudo chown -R $USER:$USER "$APP/nginx/ssl"
+              sudo chown -R "$ME":"$ME" "$APP/nginx/ssl"
             else
               echo "TLS step skipped or already present."
             fi
@@ -260,5 +271,5 @@ jobs:
             docker compose -f docker-compose.prod.yml up -d
             docker image prune -f || true
 
-            echo "✅ Deploy complete → https://${DOMAIN}"
+            echo "✅ Deploy complete → https://${DOMAIN:-example.com}"
 
