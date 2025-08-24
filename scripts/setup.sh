@@ -72,7 +72,7 @@ echo "🗄️  Setting up database..."
 cd backend
 npm run db:generate
 npm run db:migrate
-npm run db:seed
+npm run db:seed:dev
 cd ..
 
 echo ""
