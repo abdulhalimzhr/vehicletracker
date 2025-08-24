@@ -15,8 +15,20 @@ export class ReportService {
 
     if (startDate || endDate) {
       whereClause.startTime = {};
-      if (startDate) whereClause.startTime.gte = new Date(startDate);
-      if (endDate) whereClause.startTime.lte = new Date(endDate);
+      if (startDate) {
+        whereClause.startTime.gte = new Date(startDate);
+      }
+      if (endDate) {
+        const endDateTime = new Date(endDate);
+        // If it's the same day (single day report), include the entire day
+        if (startDate === endDate) {
+          endDateTime.setDate(endDateTime.getDate() + 1);
+          whereClause.startTime.lt = endDateTime;
+        } else {
+          endDateTime.setHours(23, 59, 59, 999);
+          whereClause.startTime.lte = endDateTime;
+        }
+      }
     }
 
     const trips = await prisma.vehicleTrip.findMany({

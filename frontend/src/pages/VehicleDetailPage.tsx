@@ -82,7 +82,7 @@ export default function VehicleDetailPage() {
               'Downloading...'
             ) : (
               <>
-                Download<span className="hidden md:inline">Report</span>
+                Download<span className="hidden md:inline ms-0.5">Report</span>
               </>
             )}
           </Button>
